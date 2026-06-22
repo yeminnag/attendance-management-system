@@ -68,10 +68,14 @@ export function Home() {
 
     const todaySubjects = getSubjectsForToday(subjects);
 
+    
     function getSubjectPercent(subjectId) {
+        //attendanceテーブルから適切なデータを取得
         const records = attendance.filter(
             (a) => a.subject_id === subjectId && a.status !== ATTENDANCE_STATUS.SKIPPED
         );
+        
+        
         const studentIds = [...new Set(records.map((a) => a.student_id))];
         if (studentIds.length === 0) return 0;
 

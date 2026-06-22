@@ -7,13 +7,17 @@ import {
     updateAttendanceStatus,
 } from "@/utils/attendanceFunctions.js";
 import { fetchStudentSubjectsWithDetails } from "@/utils/studentFunctions.js";
+import {
+    filterAttendanceBySubjectIds,
+    groupEnrollmentByCourse,
+} from "@/utils/subjectGroupFunctions.js";
 import { useAuth } from "@/context/AuthContext.jsx";
 
 export function StudentDetailPanel({ selectedStudent }) {
     const { canEditSubject } = useAuth();
-    const [selectedSubject, setSelectedSubject] = useState(null);
-    const [ attendance, setAttendance ] = useState([]);
-    const [ studentSubjects, setStudentSubjects ] = useState([]);
+    const [selectedCourse, setSelectedCourse] = useState(null);
+    const [attendance, setAttendance] = useState([]);
+    const [courseGroups, setCourseGroups] = useState([]);
     const [endDate, setEndDate] = useState("");
     const [startDate, setStartDate] = useState("");
 
@@ -21,13 +25,7 @@ export function StudentDetailPanel({ selectedStudent }) {
         const { data, error } = await fetchStudentSubjectsWithDetails(studentId);
         if (error) return alert(error.message);
 
-        const unique = Object.values(
-            (data ?? []).reduce((acc, row) => {
-                acc[row.subject_id] = acc[row.subject_id] || row;
-                return acc;
-            }, {})
-        );
-        setStudentSubjects(unique);
+        setCourseGroups(groupEnrollmentByCourse(data ?? []));
     }
 
     async function loadAttendance(studentId) {
@@ -40,51 +38,43 @@ export function StudentDetailPanel({ selectedStudent }) {
         if (selectedStudent) {
             loadStudentSubjects(selectedStudent.id);
             loadAttendance(selectedStudent.id);
+            setSelectedCourse(null);
         }
     }, [selectedStudent]);
 
-    const visibleSubjects = studentSubjects;
-    const canEditSelectedSubject = selectedSubject
-        ? canEditSubject(selectedSubject.subject_id)
+    const canEditSelectedCourse = selectedCourse
+        ? selectedCourse.subjectIds.some((subjectId) => canEditSubject(subjectId))
         : false;
-    
-    function getSubjectAttendance(subjectId) {
-        let subjectAttendance = attendance.filter(
-            a => a.subject_id === subjectId
-        );
 
-        if (startDate) {
-            subjectAttendance = subjectAttendance.filter(
-                a => a.date >= startDate
-            );
-        }
+    function filterByDateRange(records) {
+        let filtered = records;
+        if (startDate) filtered = filtered.filter((a) => a.date >= startDate);
+        if (endDate) filtered = filtered.filter((a) => a.date <= endDate);
+        return filtered;
+    }
 
-        if (endDate) {
-            subjectAttendance = subjectAttendance.filter(
-                a => a.date <= endDate
-            );
-        }
-
-        return subjectAttendance.sort(
+    function getCourseAttendance(subjectIds) {
+        return filterByDateRange(filterAttendanceBySubjectIds(attendance, subjectIds)).sort(
             (a, b) => new Date(b.date) - new Date(a.date)
         );
     }
+
     function getOverallPercentage() {
-        if (visibleSubjects.length === 0) return 0;
-        const total = visibleSubjects.reduce((sum, s) => {
-            return sum + getAttendancePercentage(s.subject_id);
+        if (courseGroups.length === 0) return 0;
+        const total = courseGroups.reduce((sum, course) => {
+            return sum + getAttendancePercentage(course.subjectIds);
         }, 0);
-        return Math.round(total / visibleSubjects.length);
+        return Math.round(total / courseGroups.length);
     }
-    function getAttendancePercentage(subjectId) {
-        let subjectAttendance = attendance.filter(a => a.subject_id === subjectId);
-        
-        if (startDate) subjectAttendance = subjectAttendance.filter(a => a.date >= startDate);
-        if (endDate) subjectAttendance = subjectAttendance.filter(a => a.date <= endDate);
-        
+
+    function getAttendancePercentage(subjectIds) {
+        const subjectAttendance = filterByDateRange(
+            filterAttendanceBySubjectIds(attendance, subjectIds)
+        );
         if (subjectAttendance.length === 0) return 0;
         return getAttendanceRate(subjectAttendance);
     }
+
     async function updateAttendance(attendanceId, newStatus, subjectId) {
         if (!canEditSubject(subjectId)) return;
 
@@ -95,11 +85,9 @@ export function StudentDetailPanel({ selectedStudent }) {
             return;
         }
 
-        setAttendance(prev =>
-            prev.map(record =>
-                record.id === attendanceId
-                    ? { ...record, status: newStatus }
-                    : record
+        setAttendance((prev) =>
+            prev.map((record) =>
+                record.id === attendanceId ? { ...record, status: newStatus } : record
             )
         );
     }
@@ -109,7 +97,7 @@ export function StudentDetailPanel({ selectedStudent }) {
 
         const exportData = buildAttendanceExport({
             student: selectedStudent,
-            studentSubjects: visibleSubjects,
+            courseGroups,
             attendance,
             startDate,
             endDate,
@@ -118,7 +106,7 @@ export function StudentDetailPanel({ selectedStudent }) {
         downloadAttendanceExport(exportData, format);
     }
 
-    return(
+    return (
         <div className="student-detail-panel">
             <div className="student-details-container">
                 {selectedStudent ? (
@@ -128,8 +116,8 @@ export function StudentDetailPanel({ selectedStudent }) {
                             <div className="date-filter">
                                 <div className="input-box">
                                     <label>から </label>
-                                    <input 
-                                        type="date" 
+                                    <input
+                                        type="date"
                                         className="input-field"
                                         value={startDate}
                                         onChange={(e) => setStartDate(e.target.value)}
@@ -137,42 +125,60 @@ export function StudentDetailPanel({ selectedStudent }) {
                                 </div>
                                 <div className="input-box">
                                     <label>まで </label>
-                                    <input 
+                                    <input
                                         type="date"
                                         className="input-field"
                                         value={endDate}
                                         onChange={(e) => setEndDate(e.target.value)}
                                     />
                                 </div>
-                                <button onClick={() => { setStartDate(""); setEndDate(""); }}>クリア</button>
+                                <button
+                                    onClick={() => {
+                                        setStartDate("");
+                                        setEndDate("");
+                                    }}
+                                >
+                                    クリア
+                                </button>
                             </div>
                         </div>
 
                         <div className="attendance-download-bar">
                             <span className="attendance-download-label">ダウンロード</span>
-                            <button type="button" onClick={() => handleDownload("csv")}>CSV</button>
-                            <button type="button" onClick={() => handleDownload("tsv")}>TSV</button>
-                            <button type="button" onClick={() => handleDownload("json")}>JSON</button>
+                            <button type="button" onClick={() => handleDownload("csv")}>
+                                CSV
+                            </button>
+                            <button type="button" onClick={() => handleDownload("tsv")}>
+                                TSV
+                            </button>
+                            <button type="button" onClick={() => handleDownload("json")}>
+                                JSON
+                            </button>
                         </div>
 
                         <table className="table-layout student-table">
                             <thead>
                                 <tr>
-                                    <th>授業名</th>
+                                    <th>科目名</th>
                                     <th>科目</th>
                                     <th>出席率</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {visibleSubjects.map((s) => (
+                                {courseGroups.map((course) => (
                                     <tr
-                                        key={s.subject_id}
-                                        onClick={() => setSelectedSubject(s)}
+                                        key={course.courseKey}
+                                        onClick={() => setSelectedCourse(course)}
                                         style={{ cursor: "pointer" }}
                                     >
-                                        <td>{s.subjects.name}</td>
-                                        <td>{s.subjects.type}</td>
-                                        <td>{getAttendancePercentage(s.subject_id)}%</td>
+                                        <td>
+                                            {course.courseName}
+                                            {course.slotNames.length > 1 && (
+                                                <small>（{course.slotNames.length}限）</small>
+                                            )}
+                                        </td>
+                                        <td>{course.subjectType}</td>
+                                        <td>{getAttendancePercentage(course.subjectIds)}%</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -183,49 +189,64 @@ export function StudentDetailPanel({ selectedStudent }) {
                                 </tr>
                             </tfoot>
                         </table>
-                        {selectedSubject && (
+                        {selectedCourse && (
                             <div className="subject-attendance-detail">
-                                <h3>
-                                    {selectedSubject.subjects.name} 出席歴
-                                </h3>
+                                <h3>{selectedCourse.courseName} 出席歴</h3>
+                                {selectedCourse.slotNames.length > 1 && (
+                                    <p className="field-hint">
+                                        {selectedCourse.slotNames.join(" · ")}
+                                    </p>
+                                )}
 
                                 <table className="table-layout">
                                     <thead>
                                         <tr>
                                             <th>日程</th>
+                                            {selectedCourse.slotNames.length > 1 && <th>限</th>}
                                             <th>ステータス</th>
                                         </tr>
                                     </thead>
 
                                     <tbody>
-                                        {getSubjectAttendance(selectedSubject.subject_id).map(record => (
-                                            <tr key={record.id}>
-                                                <td>{record.date}</td>
-                                                <td>
-                                                    {canEditSelectedSubject ? (
-                                                        <select
-                                                            className="attendance-edit"
-                                                            value={record.status}
-                                                            onChange={(e) =>
-                                                                updateAttendance(
-                                                                    record.id,
-                                                                    e.target.value,
-                                                                    selectedSubject.subject_id
-                                                                )
-                                                            }
-                                                        >
-                                                            {EDITABLE_ATTENDANCE_STATUSES.map((status) => (
-                                                                <option key={status} value={status}>
-                                                                    {status}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                    ) : (
-                                                        <span>{record.status}</span>
+                                        {getCourseAttendance(selectedCourse.subjectIds).map(
+                                            (record) => (
+                                                <tr key={record.id}>
+                                                    <td>{record.date}</td>
+                                                    {selectedCourse.slotNames.length > 1 && (
+                                                        <td>{record.subjects?.name ?? "—"}</td>
                                                     )}
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    <td>
+                                                        {canEditSelectedCourse &&
+                                                        canEditSubject(record.subject_id) ? (
+                                                            <select
+                                                                className="attendance-edit"
+                                                                value={record.status}
+                                                                onChange={(e) =>
+                                                                    updateAttendance(
+                                                                        record.id,
+                                                                        e.target.value,
+                                                                        record.subject_id
+                                                                    )
+                                                                }
+                                                            >
+                                                                {EDITABLE_ATTENDANCE_STATUSES.map(
+                                                                    (status) => (
+                                                                        <option
+                                                                            key={status}
+                                                                            value={status}
+                                                                        >
+                                                                            {status}
+                                                                        </option>
+                                                                    )
+                                                                )}
+                                                            </select>
+                                                        ) : (
+                                                            <span>{record.status}</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -236,5 +257,5 @@ export function StudentDetailPanel({ selectedStudent }) {
                 )}
             </div>
         </div>
-    )
+    );
 }

@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/../supabase.js";
 import { StationPicker, CommuteStationsPicker } from "@/components/StationPicker.jsx";
 import { buildCommutePayload } from "@/services/stationService.js";
+import { formatStudentAuthError, validateStudentNumber } from "@/utils/studentAuth.js";
 import { toggleListSelection } from "@/utils/subjectFunctions.js";
 import {
+    createStudentLogin,
     fetchStudentSubjectIds,
     mergeSubjectIdsForTeacherUpdate,
     setStudentSubjects,
@@ -21,26 +24,35 @@ export function EditStudentPanel({
 }) {
     const [nearestStation, setNearestStation] = useState(null);
     const [commuteStations, setCommuteStations] = useState([]);
+    const [newPassword, setNewPassword] = useState("");
 
     useEffect(() => {
         if (!editStudent) return;
         setNearestStation(editStudent.nearest_station ?? null);
         setCommuteStations(editStudent.commute_stations ?? []);
+        setNewPassword("");
     }, [editStudent]);
 
-    async function updateStudent() {
+    async function saveStudent() {
+        const normalizedNumber = String(editStudent.student_number ?? "").trim();
+
+        if (isAdmin) {
+            const numberError = validateStudentNumber(normalizedNumber);
+            if (numberError) return alert(numberError);
+        }
+
         const commutePayload = isAdmin ? buildCommutePayload(nearestStation, commuteStations) : {};
 
         const updateData = isAdmin
             ? {
                 name: editStudent.name,
-                student_number: editStudent.student_number,
+                student_number: normalizedNumber,
                 email: editStudent.email,
                 ...commutePayload,
             }
             : {
                 name: editStudent.name,
-                student_number: editStudent.student_number,
+                student_number: normalizedNumber,
             };
 
         const { error } = await updateStudent(editStudent.id, updateData);
@@ -69,15 +81,39 @@ export function EditStudentPanel({
         );
         if (subjectError) return alert(subjectError.message);
 
+        if (isAdmin && newPassword.trim()) {
+            const { error: authError, usedFallback } = await createStudentLogin({
+                studentId: editStudent.id,
+                name: editStudent.name,
+                studentNumber: normalizedNumber,
+                password: newPassword.trim(),
+            });
+
+            if (authError) return alert(formatStudentAuthError(authError.message));
+
+            if (usedFallback) {
+                setEditStudent(null);
+                setEditStudentSubjects([]);
+                setNewPassword("");
+                fetchStudents();
+                await supabase.auth.signOut();
+                alert("学生のログインを作成しました。管理者として再度ログインしてください。");
+                window.location.href = "/login";
+                return;
+            }
+        }
+
         setEditStudent(null);
         setEditStudentSubjects([]);
+        setNewPassword("");
         fetchStudents();
     }
 
     function toggleEditStudentSubject(subjectId) {
         if (!isAdmin && !subjectIds.includes(String(subjectId))) return;
 
-        setEditStudentSubjects((prev) => toggleListSelection(prev, subjectId));    }
+        setEditStudentSubjects((prev) => toggleListSelection(prev, subjectId));
+    }
 
     const visibleSubjects = isAdmin
         ? fetchSubject
@@ -121,9 +157,10 @@ export function EditStudentPanel({
                             <h4>詳細情報</h4>
                             <div className="form-button">
                                 <div className="input-box">
-                                    <label>学生番号</label>
+                                    <label>学籍番号</label>
                                     <input
                                         type="text"
+                                        inputMode="numeric"
                                         className="input-field"
                                         value={editStudent.student_number || ""}
                                         onChange={(e) =>
@@ -132,10 +169,21 @@ export function EditStudentPanel({
                                                 student_number: e.target.value,
                                             })
                                         }
+                                        disabled={!isAdmin}
                                     />
                                 </div>
                                 {isAdmin && (
                                     <>
+                                        <div className="input-box">
+                                            <label>新しいパスワード</label>
+                                            <input
+                                                type="password"
+                                                className="input-field"
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                placeholder="変更する場合のみ入力"
+                                            />
+                                        </div>
                                         <div className="input-box station-field">
                                             <StationPicker
                                                 label="最寄駅"
@@ -184,7 +232,7 @@ export function EditStudentPanel({
                                 </div>
                             </div>
                             <div className="form-btn">
-                                <button onClick={updateStudent}>更新</button>
+                                <button onClick={saveStudent}>更新</button>
                                 <button id="cancel" onClick={() => setEditStudent(null)}>
                                     キャンセル
                                 </button>

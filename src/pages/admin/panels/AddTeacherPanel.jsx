@@ -92,9 +92,6 @@ export function AddTeacherPanel({ showModal, setShowModal, subjects, fetchTeache
                                         onChange={(e) => setUsername(e.target.value)}
                                         placeholder="yomi-teacher-01"
                                     />
-                                    <small className="field-hint">
-                                        教員はこのユーザー名でログインします（メール不要）
-                                    </small>
                                 </div>
                                 <div className="input-box">
                                     <label>パスワード</label>

@@ -76,7 +76,7 @@ export function Login() {
     return (
         <div className="login-page">
             <form className="login-card" onSubmit={handleSubmit}>
-                <h1>出席管理システム</h1>
+                <h1>出席管理パンネル</h1>
                 <p className="login-subtitle">読売理工医療福祉専門学校</p>
 
                 <div className="login-tabs">

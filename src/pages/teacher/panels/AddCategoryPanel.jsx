@@ -1,4 +1,3 @@
-import { supabase } from "@/../supabase.js";
 import { useState } from "react";
 import { WEEKDAYS, toggleWeekday } from "@/utils/dateTimeFunctions.js";
 import { createSubject, hasSubjectTimeConflict } from "@/utils/subjectFunctions.js";
@@ -8,6 +7,7 @@ import { createSubject, hasSubjectTimeConflict } from "@/utils/subjectFunctions.
 export function AddCategoryPanel({ showModal, setShowModal, fetchSubjects }) {
 
     const [addSubject, setAddSubject] = useState("");
+    const [courseName, setCourseName] = useState("");
     const [addSubjectType, setAddSubjectType] = useState("必修");
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("");
@@ -29,14 +29,16 @@ export function AddCategoryPanel({ showModal, setShowModal, fetchSubjects }) {
 
         const { error } = await createSubject({
             name: addSubject,
+            course_name: courseName,
             type: addSubjectType,
             start_time: startTime,
             end_time: endTime,
             days,
-        });  
+        });
         if (error) return alert(error.message);
 
-        setAddSubject("")
+        setAddSubject("");
+        setCourseName("");
         setShowModal(false);
         fetchSubjects?.();
     }
@@ -54,11 +56,23 @@ export function AddCategoryPanel({ showModal, setShowModal, fetchSubjects }) {
                                     <input
                                         type="text"
                                         className="input-field"
-                                        placeholder="required"
+                                        placeholder="グラフィック応用 一限目"
                                         name="subject"
                                         value={addSubject}
                                         onChange={(e) => setAddSubject(e.target.value)}
                                         required
+                                    />
+                                </div>
+
+                                <div className="input-box">
+                                    <label htmlFor="course_name">科目名</label>
+                                    <input
+                                        type="text"
+                                        id="course_name"
+                                        className="input-field"
+                                        placeholder="グラフィック応用"
+                                        value={courseName}
+                                        onChange={(e) => setCourseName(e.target.value)}
                                     />
                                 </div>
 

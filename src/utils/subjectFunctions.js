@@ -22,10 +22,17 @@ export async function fetchSubjectNames() {
     return supabase.from("subjects").select("id, name").order("name");
 }
 
-export async function createSubject({ name, type, start_time, end_time, days }) {
+export async function createSubject({ name, type, start_time, end_time, days, course_name }) {
     return supabase
         .from("subjects")
-        .insert({ name, type, start_time, end_time, days })
+        .insert({
+            name,
+            type,
+            start_time,
+            end_time,
+            days,
+            course_name: course_name?.trim() || null,
+        })
         .select();
 }
 
@@ -38,6 +45,7 @@ export async function updateSubject(subject) {
             start_time: subject.start_time,
             end_time: subject.end_time,
             days: subject.days,
+            course_name: subject.course_name?.trim() || null,
         })
         .eq("id", subject.id);
 }

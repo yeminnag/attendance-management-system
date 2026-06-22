@@ -37,6 +37,21 @@ export function EditCategoryPanel({ fetchSubjects, editSubject, setEditSubject }
                                     />
                                 </div>
                                 <div className="input-box">
+                                    <label>科目名</label>
+                                    <input
+                                        type="text"
+                                        className="input-field"
+                                        placeholder="グラフィック応用"
+                                        value={editSubject.course_name || ""}
+                                        onChange={(e) =>
+                                            setEditSubject({
+                                                ...editSubject,
+                                                course_name: e.target.value,
+                                            })
+                                        }
+                                    />
+                                </div>
+                                <div className="input-box">
                                     <label>科目種類</label>
                                     <div className="radio-group">
                                         <input
@@ -108,9 +123,7 @@ export function EditCategoryPanel({ fetchSubjects, editSubject, setEditSubject }
                             </div>
                             <div className="form-btn">
                                 <button onClick={saveSubject}>更新</button>
-                                <button id="cancel" onClick={() => setEditSubject(null)}>
-                                    キャンセル
-                                </button>
+                                <button id="cancel" onClick={() => setEditSubject(null)}> キャンセル </button>
                             </div>
                         </div>
                     </div>

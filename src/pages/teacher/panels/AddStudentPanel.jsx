@@ -1,20 +1,30 @@
 import { useState } from "react";
+import { supabase } from "@/../supabase.js";
 import { StationPicker, CommuteStationsPicker } from "@/components/StationPicker.jsx";
 import { buildCommutePayload } from "@/services/stationService.js";
+import { validateStudentNumber } from "@/utils/studentAuth.js";
 import { toggleListSelection } from "@/utils/subjectFunctions.js";
-import { createStudent, setStudentSubjects } from "@/utils/studentFunctions.js";
+import {
+    createStudent,
+    createStudentLogin,
+    deleteStudent,
+    isStudentNumberTaken,
+    setStudentSubjects,
+} from "@/utils/studentFunctions.js";
 
 export function AddStudentPanel({ showModal, setShowModal, fetchSubject, fetchStudents }) {
-
     const [newStudentName, setNewStudentName] = useState("");
     const [newStudentNumber, setNewStudentNumber] = useState("");
+    const [password, setPassword] = useState("");
     const [newStudentSubjects, setNewStudentSubjects] = useState([]);
     const [newStudentEmail, setNewStudentEmail] = useState("");
     const [nearestStation, setNearestStation] = useState(null);
     const [commuteStations, setCommuteStations] = useState([]);
+
     function resetForm() {
         setNewStudentName("");
         setNewStudentNumber("");
+        setPassword("");
         setNewStudentEmail("");
         setNewStudentSubjects([]);
         setNearestStation(null);
@@ -22,24 +32,63 @@ export function AddStudentPanel({ showModal, setShowModal, fetchSubject, fetchSt
     }
 
     async function addStudent() {
+        const normalizedNumber = newStudentNumber.trim();
+        const numberError = validateStudentNumber(normalizedNumber);
+
         if (!newStudentName) return alert("学生名を入力してください");
+        if (numberError) return alert(numberError);
+        if (!password) return alert("パスワードを入力してください");
+        if (password.length < 6) return alert("パスワードは6文字以上にしてください");
+
+        if (await isStudentNumberTaken(normalizedNumber)) {
+            return alert("この学籍番号は既に使われています");
+        }
+
         const commutePayload = buildCommutePayload(nearestStation, commuteStations);
         const { data, error } = await createStudent({
             name: newStudentName,
-            student_number: newStudentNumber,
+            student_number: normalizedNumber,
             email: newStudentEmail,
             commutePayload,
         });
 
         if (error) return alert(error.message);
+
+        const { error: authError, usedFallback } = await createStudentLogin({
+            studentId: data.id,
+            name: newStudentName,
+            studentNumber: normalizedNumber,
+            password,
+        });
+
+        if (authError) {
+            await deleteStudent(data.id);
+            return alert(authError.message);
+        }
+
         if (newStudentSubjects.length > 0) {
             const { error: subjectError } = await setStudentSubjects(data.id, newStudentSubjects);
-            if (subjectError) return alert(subjectError.message);
+            if (subjectError) {
+                return alert(subjectError.message);
+            }
         }
+
         resetForm();
         setShowModal(false);
         fetchStudents();
+
+        if (usedFallback) {
+            await supabase.auth.signOut();
+            alert(
+                `学生を追加しました。\n学籍番号: ${normalizedNumber}\n\n管理者として再度ログインしてください。`
+            );
+            window.location.href = "/login";
+            return;
+        }
+
+        alert(`学生を追加しました。\n学籍番号: ${normalizedNumber}`);
     }
+
     const previewLines = buildCommutePayload(nearestStation, commuteStations).commute_lines;
 
     return (
@@ -60,6 +109,26 @@ export function AddStudentPanel({ showModal, setShowModal, fetchSubject, fetchSt
                                     />
                                 </div>
                                 <div className="input-box">
+                                    <label>学籍番号</label>
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        className="input-field"
+                                        value={newStudentNumber}
+                                        onChange={(e) => setNewStudentNumber(e.target.value)}
+                                        placeholder="123456"
+                                    />
+                                </div>
+                                <div className="input-box">
+                                    <label>パスワード</label>
+                                    <input
+                                        type="password"
+                                        className="input-field"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                    />
+                                </div>
+                                <div className="input-box">
                                     <label>メール</label>
                                     <input
                                         type="email"
@@ -71,15 +140,6 @@ export function AddStudentPanel({ showModal, setShowModal, fetchSubject, fetchSt
                             </div>
                             <h4>詳細情報</h4>
                             <div className="form-button">
-                                <div className="input-box">
-                                    <label>学生番号</label>
-                                    <input
-                                        type="text"
-                                        className="input-field"
-                                        value={newStudentNumber}
-                                        onChange={(e) => setNewStudentNumber(e.target.value)}
-                                    />
-                                </div>
                                 <div className="input-box station-field">
                                     <StationPicker
                                         label="最寄駅"
@@ -132,7 +192,9 @@ export function AddStudentPanel({ showModal, setShowModal, fetchSubject, fetchSt
                             </div>
                             <div className="form-btn">
                                 <button onClick={addStudent}>追加</button>
-                                <button id="cancel" onClick={() => setShowModal(false)}>キャンセル</button>
+                                <button id="cancel" onClick={() => setShowModal(false)}>
+                                    キャンセル
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -140,6 +202,4 @@ export function AddStudentPanel({ showModal, setShowModal, fetchSubject, fetchSt
             )}
         </>
     );
-
 }
-

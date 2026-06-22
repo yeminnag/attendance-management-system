@@ -1,4 +1,5 @@
 import { getAttendanceRate } from "@/utils/attendanceFunctions.js";
+import { filterAttendanceBySubjectIds } from "@/utils/subjectGroupFunctions.js";
 
 function escapeCsv(value) {
     const str = String(value ?? "");
@@ -31,21 +32,19 @@ function getAttendancePercentage(records) {
 
 export function buildAttendanceExport({
     student,
-    studentSubjects,
+    courseGroups,
     attendance,
     startDate,
     endDate,
 }) {
-    const subjectMap = Object.fromEntries(
-        studentSubjects.map((s) => [s.subject_id, s.subjects])
-    );
     const filteredAttendance = filterAttendance(attendance, startDate, endDate);
 
-    const summary = studentSubjects.map((s) => {
-        const subjectRecords = filteredAttendance.filter((a) => a.subject_id === s.subject_id);
+    const summary = courseGroups.map((course) => {
+        const subjectRecords = filterAttendanceBySubjectIds(filteredAttendance, course.subjectIds);
         return {
-            subjectName: s.subjects.name,
-            subjectType: s.subjects.type,
+            subjectName: course.courseName,
+            subjectType: course.subjectType,
+            slotNames: course.slotNames,
             attendanceRate: getAttendancePercentage(subjectRecords),
             recordCount: subjectRecords.length,
         };
@@ -58,8 +57,9 @@ export function buildAttendanceExport({
 
     const records = filteredAttendance.map((record) => ({
         date: record.date,
-        subjectName: subjectMap[record.subject_id]?.name ?? "",
-        subjectType: subjectMap[record.subject_id]?.type ?? "",
+        subjectName: record.subjects?.name ?? "",
+        courseName: record.subjects?.course_name || record.subjects?.name || "",
+        subjectType: record.subjects?.type ?? "",
         status: record.status,
     }));
 
@@ -94,7 +94,7 @@ export function downloadAttendanceExport(exportData, format) {
     lines.push(["学生番号", student.studentNumber ?? ""].join(delimiter));
     lines.push(["総合出席率", `${overallRate}%`].join(delimiter));
     lines.push("");
-    lines.push(["授業名", "科目", "出席率", "記録数"].map(escapeCsv).join(delimiter));
+    lines.push(["科目名", "科目", "出席率", "記録数"].map(escapeCsv).join(delimiter));
     summary.forEach((s) => {
         lines.push(
             [s.subjectName, s.subjectType, `${s.attendanceRate}%`, s.recordCount]

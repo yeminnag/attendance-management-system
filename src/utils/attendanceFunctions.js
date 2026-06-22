@@ -249,5 +249,8 @@ export async function updateAttendanceStatus(attendanceId, status) {
 }
 
 export async function fetchStudentAttendance(studentId) {
-    return supabase.from("attendance").select("*").eq("student_id", studentId);
+    return supabase
+        .from("attendance")
+        .select("*, subjects(name, type, course_name)")
+        .eq("student_id", studentId);
 }
