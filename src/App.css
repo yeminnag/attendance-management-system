@@ -1,0 +1,24 @@
+.form-btn{
+    display: flex;
+    margin-top: auto;
+    padding: 20px;
+    gap: 10px;
+    button{
+        width: 130px;
+        height: 35px;
+        border-radius: 10px;
+        background-color: var(--accent-color);
+        color: var(--text-color);
+        border: none;
+        cursor: pointer;
+    }
+    button:hover{
+        background-color: var(--accent-hover-color );
+    }
+    #cancel{
+        background-color: var(--hover-color);
+    }
+    #cancel:hover{
+        background-color: var(--base-lighter-color);
+    }
+}

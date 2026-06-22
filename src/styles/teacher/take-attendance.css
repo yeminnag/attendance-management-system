@@ -1,0 +1,380 @@
+.classes {
+    width: auto;
+    min-width: 400px;
+}
+
+.take-attendance-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    border-bottom: 1px solid var(--hover-color);
+}
+
+.take-attendance-main {
+    overflow: auto;
+}
+
+.train-delay-panel {
+    border-left: 1px solid var(--hover-color);
+    background-color: var(--base-color);
+    padding: 16px;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+}
+
+.train-delay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.train-delay-header h2 {
+    font-size: 16px;
+    font-weight: 400;
+    margin-bottom: 4px;
+}
+
+.train-delay-subtitle {
+    font-size: 11px;
+    color: var(--text-secondary-color);
+}
+
+.train-delay-refresh {
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--hover-color);
+    background: transparent;
+    color: var(--text-color);
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.train-delay-refresh:hover:not(:disabled) {
+    background-color: var(--hover-color);
+}
+
+.train-delay-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.train-delay-status-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.train-delay-indicator {
+    font-size: 13px;
+    color: var(--text-secondary-color);
+}
+
+.train-delay-indicator.on-time {
+    color: var(--accent-color);
+}
+
+.train-delay-indicator.delayed {
+    color: var(--delete-btn);
+}
+
+.train-delay-updated {
+    font-size: 11px;
+    color: var(--text-secondary-color);
+}
+
+.train-delay-notice,
+.train-delay-error {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+
+.train-delay-notice {
+    background-color: var(--base-lighter-color);
+    border: 1px solid var(--hover-color);
+    color: var(--text-secondary-color);
+}
+
+.train-delay-notice code {
+    font-size: 11px;
+}
+
+.train-delay-error {
+    background-color: rgba(180, 60, 60, 0.15);
+    border: 1px solid var(--delete-btn);
+    color: var(--delete-btn);
+}
+
+.train-delay-manual {
+    padding: 12px;
+    border: 1px solid var(--hover-color);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    font-size: 12px;
+}
+
+.train-delay-manual label {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.train-delay-manual-note {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-secondary-color);
+}
+
+.train-delay-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.train-delay-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding:5px;
+    border-radius: 10px;
+}
+
+.train-delay-line.on-time {
+    border-color: rgba(76, 175, 122, 0.25);
+}
+
+.train-delay-line.delayed {
+    border-color: rgba(201, 36, 36, 0.35);
+}
+
+.train-delay-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    margin-top: 9px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+}
+
+.train-delay-line.delayed .train-delay-dot {
+    background-color: var(--delete-btn);
+}
+
+.train-delay-line-body {
+    min-width: 0;
+    flex: 1;
+}
+
+.train-delay-line-head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 4px;
+}
+
+.train-delay-line-head small {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.train-delay-line-head span {
+    font-size: 10px;
+    color: var(--text-secondary-color);
+}
+
+.train-delay-line-status {
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+.train-delay-line.on-time .train-delay-line-status {
+    color: var(--accent-color);
+}
+
+.train-delay-line.delayed .train-delay-line-status {
+    color: var(--delete-btn);
+}
+
+.train-delay-line-text {
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 4px;
+}
+
+.train-delay-line time {
+    font-size: 10px;
+    color: var(--text-secondary-color);
+}
+
+.train-delay-empty {
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary-color);
+    border: 1px dashed var(--hover-color);
+    border-radius: 10px;
+}
+
+.train-delay-rules {
+    border-top: 1px solid var(--hover-color);
+    padding-top: 12px;
+}
+
+.train-delay-rules h3 {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-secondary-color);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.train-delay-rules ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-secondary-color);
+}
+
+.classes tr td:last-child,
+.classes tr th:last-child {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+
+    border: none;
+    background-color: transparent;
+    padding: 6px 12px;
+}
+
+.classes tr td:last-child button {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-color);
+    font-size: 12px;
+    background-color: var(--hover-color);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.classes tr td:last-child button:hover {
+    background-color: var(--base-lighter-color);
+}
+
+.classes tr td:last-child button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.classes .live-badge {
+    color: var(--delete-btn);
+    font-size: 11px;
+    margin-left: 6px;
+}
+
+button.form-btn.end {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--delete-btn);
+    color: var(--text-color);
+    font-size: 12px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    width: auto;
+    height: auto;
+    margin: 0;
+}
+
+button.form-btn.end:hover {
+    opacity: 0.85;
+}
+
+.class-ended td,
+.class-skipped td {
+    color: var(--hover-color);
+}
+
+
+.attendance-panel {
+    font-size: 13px;
+    padding: 8px 0;
+}
+
+.attendance-panel h4 {
+    font-weight: 400;
+    padding: 14px 16px;
+    font-size: 14px;
+    border-top: 1px solid var(--hover-color);
+    color: var(--text-color);
+}
+
+.attendance-panel ul {
+    list-style: none;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.attendance-panel ul li {
+    background-color: var(--base-color);
+    border: 1px solid var(--hover-color);
+    border-radius: 10px;
+    width: min(420px, 100%);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.attendance-panel ul li:hover {
+    border-color: var(--accent-color);
+}
+
+.attendance-panel ul li small {
+    font-size: 11px;
+    margin-left: 6px;
+    color: var(--text-secondary-color);
+}
+
+.attendance-panel .student-commute-lines {
+    display: block;
+    margin-left: 0;
+    margin-top: 2px;
+    font-size: 10px;
+}
+
+.attendance-panel ul .present {
+    background-color: var(--secondary-color);
+    border-color: var(--accent-color);
+    color: var(--text-color);
+    justify-content: space-between;
+}
+
+.attendance-panel ul .present span:last-child,
+.attendance-panel ul .present .check-in-meta {
+    font-size: 10px;
+    color: var(--accent-color);
+}
+
+.attendance-panel .check-in-meta {
+    font-size: 10px;
+    color: var(--text-secondary-color);
+    white-space: nowrap;
+}

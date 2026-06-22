@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/odpt/:path*",
+      "destination": "https://api.odpt.org/api/v4/:path*"
+    },
+    {
+      "source": "/api/heartrails",
+      "destination": "https://express.heartrails.com/api/json"
+    }
+  ]
+}

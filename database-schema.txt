@@ -1,0 +1,73 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.subjects (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  type text NOT NULL DEFAULT ''::text CHECK (type = ANY (ARRAY['必修'::text, '選択'::text])),
+  created_at timestamp without time zone DEFAULT now(),
+  start_time time without time zone,
+  end_time time without time zone,
+  days ARRAY DEFAULT '{}'::text[],
+  CONSTRAINT subjects_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.students (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  created_at timestamp without time zone DEFAULT now(),
+  student_number bigint,
+  email text,
+  nearest_station jsonb,
+  commute_stations jsonb NOT NULL DEFAULT '[]'::jsonb,
+  commute_lines jsonb NOT NULL DEFAULT '[]'::jsonb,
+  CONSTRAINT students_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.student_subjects (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  student_id uuid,
+  subject_id uuid,
+  CONSTRAINT student_subjects_pkey PRIMARY KEY (id),
+  CONSTRAINT student_subjects_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id),
+  CONSTRAINT student_subjects_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subjects(id)
+);
+CREATE TABLE public.attendance (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  student_id uuid,
+  subject_id uuid,
+  date date NOT NULL,
+  status text NOT NULL CHECK (status = ANY (ARRAY['出席'::text, '遅刻'::text, '欠席'::text, '休講'::text])),
+  CONSTRAINT attendance_pkey PRIMARY KEY (id),
+  CONSTRAINT attendance_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id),
+  CONSTRAINT attendance_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subjects(id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  email text NOT NULL,
+  name text NOT NULL,
+  role text NOT NULL DEFAULT 'teacher'::text CHECK (role = ANY (ARRAY['admin'::text, 'teacher'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  username text,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.teacher_subjects (
+  id bigint NOT NULL DEFAULT nextval('teacher_subjects_id_seq'::regclass),
+  teacher_id uuid NOT NULL,
+  subject_id uuid NOT NULL,
+  CONSTRAINT teacher_subjects_pkey PRIMARY KEY (id),
+  CONSTRAINT teacher_subjects_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.profiles(id),
+  CONSTRAINT teacher_subjects_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subjects(id)
+);
+CREATE TABLE public.class_sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  teacher_id uuid NOT NULL,
+  subject_id uuid NOT NULL,
+  date date NOT NULL,
+  started_at timestamp with time zone NOT NULL DEFAULT now(),
+  ended_at timestamp with time zone,
+  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'ended'::text, 'skipped'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT class_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT class_sessions_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.profiles(id),
+  CONSTRAINT class_sessions_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subjects(id)
+);
