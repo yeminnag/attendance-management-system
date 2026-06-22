@@ -219,7 +219,11 @@ export function buildAttendanceRecords({
 }
 
 export async function insertAttendanceRecords(records) {
-    return supabase.from("attendance").insert(records);
+    if (records.length === 0) return { data: [], error: null };
+
+    return supabase.from("attendance").upsert(records, {
+        onConflict: "student_id,subject_id,date",
+    });
 }
 
 export async function insertSkippedAttendanceForSubject(subjectId, date = getTodayDateString()) {

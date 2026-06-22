@@ -40,6 +40,7 @@ CREATE TABLE public.attendance (
   CONSTRAINT attendance_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id),
   CONSTRAINT attendance_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subjects(id)
 );
+-- UNIQUE INDEX attendance_student_subject_date_key ON (student_id, subject_id, date)
 CREATE TABLE public.profiles (
   id uuid NOT NULL,
   email text NOT NULL,
