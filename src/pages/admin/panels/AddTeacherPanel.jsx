@@ -1,9 +1,7 @@
-import { supabase } from "@/../supabase.js";
 import { useState } from "react";
 import { normalizeUsername, validateUsername } from "@/utils/teacherAuth.js";
 import {
-    assignTeacherSubjects,
-    createTeacherAccount,
+    createTeacherWithAuth,
     isUsernameTaken,
 } from "@/utils/teacherFunctions.js";
 import { toggleListSelection } from "@/utils/subjectFunctions.js";
@@ -39,31 +37,25 @@ export function AddTeacherPanel({ showModal, setShowModal, subjects, fetchTeache
             return alert("このユーザー名は既に使われています");
         }
 
-        const { data, error } = await createTeacherAccount({
+        const { data, error } = await createTeacherWithAuth({
             name,
             username: normalizedUsername,
             password,
+            subjectIds: assignedSubjects,
         });
 
         if (error) return alert(error.message);
-        if (!data.user) return alert("教員アカウントの作成に失敗しました");
-
-        if (assignedSubjects.length > 0) {
-            const { error: assignError } = await assignTeacherSubjects(
-                data.user.id,
-                assignedSubjects
-            );
-            if (assignError) return alert(assignError.message);
-        }
 
         resetForm();
         setShowModal(false);
         fetchTeachers();
-        await supabase.auth.signOut();
+
+        const recoveredNote = data.recovered
+            ? "\n（以前の登録の残りを修復しました）"
+            : "";
         alert(
-            `教員を追加しました。\nユーザー名: ${normalizedUsername}\n\n管理者として再度ログインしてください。`
+            `教員を追加しました。${recoveredNote}\nユーザー名: ${data.username}\n担当授業: ${data.assignedCount}件`
         );
-        window.location.href = "/login";
     }
 
     return (

@@ -10,13 +10,24 @@ export async function fetchTeachers() {
 }
 
 export async function isUsernameTaken(username) {
-    const { data } = await supabase
+    const normalized = normalizeUsername(username);
+    const email = usernameToAuthEmail(normalized);
+
+    const { data: byUsername } = await supabase
         .from("profiles")
-        .select("id")
-        .eq("username", normalizeUsername(username))
+        .select("id, role")
+        .eq("username", normalized)
         .maybeSingle();
 
-    return Boolean(data);
+    if (byUsername?.role === "teacher") return true;
+
+    const { data: byEmail } = await supabase
+        .from("profiles")
+        .select("id, role")
+        .eq("email", email)
+        .maybeSingle();
+
+    return byEmail?.role === "teacher";
 }
 
 export async function createTeacherAccount({ name, username, password }) {
@@ -27,6 +38,52 @@ export async function createTeacherAccount({ name, username, password }) {
             data: { name, role: "teacher", username: normalizeUsername(username) },
         },
     });
+}
+
+export async function createTeacherWithAuth({ name, username, password, subjectIds = [] }) {
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+        return { error: new Error("認証が必要です") };
+    }
+
+    let response;
+    try {
+        response = await fetch("/api/manage-teacher-auth", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+                name,
+                username,
+                password,
+                subjectIds,
+            }),
+        });
+    } catch {
+        return {
+            error: new Error(
+                "教員 API に接続できません。dev サーバーを再起動するか、Vercel にデプロイしてください。"
+            ),
+        };
+    }
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        const message =
+            result.error ??
+            (response.status === 404
+                ? "教員 API が見つかりません。dev サーバーを再起動してください。"
+                : "教員の追加に失敗しました");
+        return { error: new Error(message) };
+    }
+
+    return { data: result, error: null };
 }
 
 export async function assignTeacherSubjects(teacherId, subjectIds) {
@@ -50,5 +107,42 @@ export async function replaceTeacherSubjects(teacherId, subjectIds) {
 }
 
 export async function deleteTeacherProfile(id) {
-    return supabase.from("profiles").delete().eq("id", id);
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+        return { error: new Error("認証が必要です") };
+    }
+
+    let response;
+    try {
+        response = await fetch("/api/manage-teacher-auth", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+                action: "delete",
+                teacherId: id,
+            }),
+        });
+    } catch {
+        return {
+            error: new Error(
+                "教員 API に接続できません。dev サーバーを再起動するか、Vercel にデプロイしてください。"
+            ),
+        };
+    }
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        return {
+            error: new Error(result.error ?? "教員の削除に失敗しました"),
+        };
+    }
+
+    return { error: null };
 }

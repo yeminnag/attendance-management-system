@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { runManageStudentAuth } from "./api/manage-student-auth.js";
+import { runManageTeacherAuth } from "./api/manage-teacher-auth.js";
 
 function readRequestBody(req) {
     return new Promise((resolve, reject) => {
@@ -18,13 +19,20 @@ function readRequestBody(req) {
     });
 }
 
-function studentAuthApiPlugin() {
+const ADMIN_API_ROUTES = {
+    "/api/manage-student-auth": runManageStudentAuth,
+    "/api/manage-teacher-auth": runManageTeacherAuth,
+};
+
+function adminAuthApiPlugin() {
     return {
-        name: "student-auth-api",
+        name: "admin-auth-api",
         configureServer(server) {
             server.middlewares.use(async (req, res, next) => {
                 const url = req.url?.split("?")[0];
-                if (url !== "/api/manage-student-auth" || req.method !== "POST") {
+                const handler = ADMIN_API_ROUTES[url];
+
+                if (!handler || req.method !== "POST") {
                     return next();
                 }
 
@@ -32,7 +40,7 @@ function studentAuthApiPlugin() {
 
                 try {
                     const body = await readRequestBody(req);
-                    const result = await runManageStudentAuth({
+                    const result = await handler({
                         method: req.method,
                         body,
                         authorization: req.headers.authorization,
@@ -53,7 +61,7 @@ function studentAuthApiPlugin() {
 }
 
 export default defineConfig({
-    plugins: [react(), studentAuthApiPlugin()],
+    plugins: [react(), adminAuthApiPlugin()],
     resolve: {
         alias: { "@": "/src" },
     },
