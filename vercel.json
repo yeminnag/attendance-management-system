@@ -7,6 +7,10 @@
     {
       "source": "/api/heartrails",
       "destination": "https://express.heartrails.com/api/json"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
