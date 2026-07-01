@@ -5,6 +5,7 @@ import { ManageCategory } from "./pages/teacher/ManageCategory.jsx";
 import { ManageTeachers } from "./pages/admin/ManageTeachers.jsx";
 import { Home } from "./pages/Home.jsx";
 import { Login } from "./pages/Login.jsx";
+import { Messages } from "./pages/Messages.jsx";
 import { Layout } from "./components/Layout.jsx";
 import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
@@ -26,6 +27,7 @@ function App() {
                                         <Layout>
                                             <Routes>
                                                 <Route path="/" element={<Home />} />
+                                                <Route path="/messages" element={<Messages />} />
                                                 <Route path="/teacher/take-attendance" element={<TakeAttendance />} />
                                                 <Route path="/teacher/manage-category" element={<ManageCategory />} />
                                                 <Route path="/teacher/manage-student" element={<ManageStudent />} />

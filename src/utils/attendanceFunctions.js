@@ -14,7 +14,7 @@ export const EDITABLE_ATTENDANCE_STATUSES = [
     ATTENDANCE_STATUS.ABSENT,
 ];
 
-export const LATES_PER_ABSENT = 3;
+export const LATES_PER_ABSENT = 3; // algorithm for attendance
 
 export function countsAsPresent(status) {
     return status === ATTENDANCE_STATUS.PRESENT || status === ATTENDANCE_STATUS.LATE;
@@ -82,6 +82,8 @@ export function resolveAttendanceStatus({
 
     const minutesAfterStart = (new Date(checkInTime) - new Date(classStartTime)) / 60000;
 
+    console.log(minutesAfterStart)
+     // algorithm for attendance
     if (minutesAfterStart <= 1) return ATTENDANCE_STATUS.PRESENT;
     if (minutesAfterStart <= 20) return ATTENDANCE_STATUS.LATE;
     if (minutesAfterStart <= 30) {

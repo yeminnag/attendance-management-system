@@ -1,66 +1,83 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../supabase.js";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext.jsx";
-
-//utilities imports
+import {
+    AttendanceHeatmap,
+    TeacherAnalyticsContent,
+    TeacherComparisonTable,
+} from "@/components/analytics/AnalyticsWidgets.jsx";
+import {
+    buildMonthlyHeatmap,
+    computeTeacherAnalytics,
+    computeTeacherComparison,
+} from "@/utils/analyticsFunctions.js";
 import { formatClassSessionTime, formatTodayLabel, getTodayDateString } from "@/utils/dateTimeFunctions.js";
 import { getSubjectsForToday } from "@/utils/subjectFunctions.js";
+import { fetchTeachers } from "@/utils/teacherFunctions.js";
 import { ATTENDANCE_STATUS, countsAsPresent, getAttendanceRate } from "@/utils/attendanceFunctions.js";
 import { CLASS_SESSION_ACTION_LABELS, getTeacherDisplayLabel } from "@/utils/classSessionFunctions.js";
 
 import "../styles/home.css";
+import "../styles/analytics.css";
 
 export function Home() {
     const navigate = useNavigate();
-    const { isAdmin } = useAuth();
-    
+    const { isAdmin, subjectIds, profile } = useAuth();
+
     const [subjects, setSubjects] = useState([]);
     const [students, setStudents] = useState([]);
     const [attendance, setAttendance] = useState([]);
     const [teachers, setTeachers] = useState([]);
+    const [studentSubjects, setStudentSubjects] = useState([]);
     const [classSessions, setClassSessions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [heatmapMonth, setHeatmapMonth] = useState(() => {
+        const now = new Date();
+        return { year: now.getFullYear(), month: now.getMonth() + 1 };
+    });
 
     const todayDate = getTodayDateString();
     const todayLabel = formatTodayLabel();
 
     useEffect(() => {
-        //DATABASEからデータを取り込み
         async function fetchAll() {
-            //ADMINだったら教員のデータが必要じゃないから、それ以外のデータを持ち、ARRAYに入れる
             const requests = [
                 supabase.from("subjects").select("*").order("start_time", { ascending: true }),
                 supabase.from("students").select("id, name, student_number, email"),
                 supabase.from("attendance").select("*"),
+                supabase
+                    .from("student_subjects")
+                    .select("subject_id, students(id, name, student_number, email)"),
             ];
 
-            //ADMINの場合教員のデータも入れる
             if (isAdmin) {
                 requests.push(
-                    supabase.from("profiles").select("id").eq("role", "teacher"),
-                    supabase.from("class_sessions")
+                    fetchTeachers(),
+                    supabase
+                        .from("class_sessions")
                         .select("id, date, started_at, ended_at, status, profiles(name, username), subjects(name)")
                         .order("started_at", { ascending: false })
                         .limit(5)
                 );
             }
-            
-            const results = await Promise.all(requests);
 
-            //ARRAY DESTRUCTIONを行い、変数を設定
-            const[{ data: subjectData }, { data: studentData },{ data: attendanceData }] = results; 
-            setSubjects(subjectData);
-            setStudents(studentData);
-            setAttendance(attendanceData);
+            const results = await Promise.all(requests);
+            const [{ data: subjectData }, { data: studentData }, { data: attendanceData }, { data: enrollmentData }] =
+                results;
+
+            setSubjects(subjectData ?? []);
+            setStudents(studentData ?? []);
+            setAttendance(attendanceData ?? []);
+            setStudentSubjects(enrollmentData ?? []);
 
             if (isAdmin) {
-                const { data: teacherData } = results[3];
-                const { data: sessionData } = results[4];
-                setTeachers(teacherData || []);
-                setClassSessions(sessionData || []);
+                const { data: teacherData } = results[4];
+                const { data: sessionData } = results[5];
+                setTeachers(teacherData ?? []);
+                setClassSessions(sessionData ?? []);
             }
-            
+
             setLoading(false);
         }
         fetchAll();
@@ -68,75 +85,99 @@ export function Home() {
 
     const todaySubjects = getSubjectsForToday(subjects);
 
-    
     function getSubjectPercent(subjectId) {
-        //attendanceテーブルから適切なデータを取得
         const records = attendance.filter(
-            (a) => a.subject_id === subjectId && a.status !== ATTENDANCE_STATUS.SKIPPED
+            (record) => record.subject_id === subjectId && record.status !== ATTENDANCE_STATUS.SKIPPED
         );
-        
-        
-        const studentIds = [...new Set(records.map((a) => a.student_id))];
+        const studentIds = [...new Set(records.map((record) => record.student_id))];
         if (studentIds.length === 0) return 0;
 
         const rates = studentIds.map((studentId) =>
-            getAttendanceRate(records.filter((a) => a.student_id === studentId))
+            getAttendanceRate(records.filter((record) => record.student_id === studentId))
         );
         return Math.round(rates.reduce((sum, rate) => sum + rate, 0) / rates.length);
     }
 
     const todayAttendance = attendance.filter(
-        (a) => a.date === todayDate && a.status !== ATTENDANCE_STATUS.SKIPPED
+        (record) => record.date === todayDate && record.status !== ATTENDANCE_STATUS.SKIPPED
     );
-    const todayPresent = todayAttendance.filter((a) => countsAsPresent(a.status)).length;
+    const todayPresent = todayAttendance.filter((record) => countsAsPresent(record.status)).length;
     const todayTotal = todayAttendance.length;
     const todayRate = todayTotal > 0 ? Math.round((todayPresent / todayTotal) * 100) : null;
 
-    const atRiskStudents = students.map(student => {
-        const records = attendance.filter(
-            (a) => a.student_id === student.id && a.status !== ATTENDANCE_STATUS.SKIPPED
-        );
-        if (records.length === 0) return null;
-        const pct = getAttendanceRate(records);
-        return pct < 80 ? { ...student, pct } : null;
-    }).filter(Boolean).sort((a, b) => a.pct - b.pct);
+    const atRiskStudents = students
+        .map((student) => {
+            const records = attendance.filter(
+                (record) => record.student_id === student.id && record.status !== ATTENDANCE_STATUS.SKIPPED
+            );
+            if (records.length === 0) return null;
+            const pct = getAttendanceRate(records);
+            return pct < 80 ? { ...student, pct } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.pct - b.pct);
 
     const recentSessions = [...attendance
-        .filter((a) => a.status !== ATTENDANCE_STATUS.SKIPPED)
-        .reduce((map, a) => {
-            const key = a.subject_id + "|" + a.date;
-            if (!map.has(key)) map.set(key, { subject_id: a.subject_id, date: a.date, records: [] });
-            map.get(key).records.push(a);
+        .filter((record) => record.status !== ATTENDANCE_STATUS.SKIPPED)
+        .reduce((map, record) => {
+            const key = `${record.subject_id}|${record.date}`;
+            if (!map.has(key)) map.set(key, { subject_id: record.subject_id, date: record.date, records: [] });
+            map.get(key).records.push(record);
             return map;
-        }, new Map()).values()
-    ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5)
-     .map(session => {
-        const subject = subjects.find(s => s.id === session.subject_id);
-        const present = session.records.filter((r) => countsAsPresent(r.status)).length;
-        const absent = session.records.filter((r) => r.status === ATTENDANCE_STATUS.ABSENT).length;
-        return { ...session, subjectName: subject?.name || "不明", present, absent };
-    });
+        }, new Map()).values()]
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5)
+        .map((session) => {
+            const subject = subjects.find((item) => item.id === session.subject_id);
+            const present = session.records.filter((record) => countsAsPresent(record.status)).length;
+            const absent = session.records.filter((record) => record.status === ATTENDANCE_STATUS.ABSENT).length;
+            return { ...session, subjectName: subject?.name || "不明", present, absent };
+        });
 
-
-    const chartSubjects = subjects.filter(s => {
+    const chartSubjects = subjects.filter((subject) => {
         const records = attendance.filter(
-            (a) => a.subject_id === s.id && a.status !== ATTENDANCE_STATUS.SKIPPED
+            (record) => record.subject_id === subject.id && record.status !== ATTENDANCE_STATUS.SKIPPED
         );
         return records.length > 0;
     });
 
-    
+    const teacherComparison = useMemo(() => {
+        if (!isAdmin) return [];
+        return computeTeacherComparison(teachers, attendance, studentSubjects);
+    }, [isAdmin, teachers, attendance, studentSubjects]);
+
+    const heatmapCells = useMemo(
+        () => buildMonthlyHeatmap(attendance, heatmapMonth.year, heatmapMonth.month),
+        [attendance, heatmapMonth]
+    );
+
+    const ownTeacherAnalytics = useMemo(() => {
+        if (isAdmin || subjectIds.length === 0) return null;
+        return computeTeacherAnalytics({
+            subjectIds,
+            attendance,
+            studentSubjects,
+        });
+    }, [isAdmin, subjectIds, attendance, studentSubjects]);
+
+    function shiftHeatmapMonth(delta) {
+        setHeatmapMonth((current) => {
+            const date = new Date(current.year, current.month - 1 + delta, 1);
+            return { year: date.getFullYear(), month: date.getMonth() + 1 };
+        });
+    }
 
     function getStatusClass(subject) {
-        const todayRec = attendance.filter(a => a.subject_id === subject.id && a.date === todayDate);
+        const todayRec = attendance.filter((record) => record.subject_id === subject.id && record.date === todayDate);
         if (todayRec.length > 0) {
             if (todayRec[0].status === ATTENDANCE_STATUS.SKIPPED) return "status-skipped";
             return "status-ended";
         }
         return "status-upcoming";
     }
+
     function getStatusLabel(subject) {
-        const todayRec = attendance.filter(a => a.subject_id === subject.id && a.date === todayDate);
+        const todayRec = attendance.filter((record) => record.subject_id === subject.id && record.date === todayDate);
         if (todayRec.length > 0) {
             if (todayRec[0].status === ATTENDANCE_STATUS.SKIPPED) return "休講";
             return "終了";
@@ -157,6 +198,9 @@ export function Home() {
                     <h1>ダッシュボード</h1>
                     <p className="home-date">{todayLabel}</p>
                 </div>
+                <button type="button" className="go-btn" onClick={() => navigate("/messages")}>
+                    メッセージ →
+                </button>
             </div>
 
             <div className={`stat-cards${isAdmin ? " admin-stats" : ""}`}>
@@ -184,11 +228,25 @@ export function Home() {
                 </div>
             </div>
 
+            {!isAdmin && ownTeacherAnalytics && (
+                <div className="home-card home-card-wide teacher-analytics-card">
+                    <div className="card-header">
+                        <h2>担当授業の分析</h2>
+                    </div>
+                    <TeacherAnalyticsContent
+                        analytics={ownTeacherAnalytics}
+                        teacherName={profile?.name ?? "教員"}
+                    />
+                </div>
+            )}
+
             <div className="home-grid">
                 <div className="home-card">
                     <div className="card-header">
                         <h2>本日のスケジュール</h2>
-                        <button className="go-btn" onClick={() => navigate("/teacher/take-attendance")}>出欠確認 →</button>
+                        <button className="go-btn" onClick={() => navigate("/teacher/take-attendance")}>
+                            出欠確認 →
+                        </button>
                     </div>
                     {todaySubjects.length === 0 ? (
                         <p className="empty-msg">本日は授業がありません</p>
@@ -203,12 +261,18 @@ export function Home() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {todaySubjects.map(s => (
-                                    <tr key={s.id}>
-                                        <td>{s.name}</td>
-                                        <td>{s.start_time.slice(0,5)} – {s.end_time.slice(0,5)}</td>
-                                        <td>{s.type}</td>
-                                        <td><span className={`status-badge ${getStatusClass(s)}`}>{getStatusLabel(s)}</span></td>
+                                {todaySubjects.map((subject) => (
+                                    <tr key={subject.id}>
+                                        <td>{subject.name}</td>
+                                        <td>
+                                            {subject.start_time.slice(0, 5)} – {subject.end_time.slice(0, 5)}
+                                        </td>
+                                        <td>{subject.type}</td>
+                                        <td>
+                                            <span className={`status-badge ${getStatusClass(subject)}`}>
+                                                {getStatusLabel(subject)}
+                                            </span>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -217,21 +281,28 @@ export function Home() {
                 </div>
 
                 <div className="home-card">
-                    <div className="card-header"><h2>授業別出席率</h2></div>
+                    <div className="card-header">
+                        <h2>授業別出席率</h2>
+                    </div>
                     {chartSubjects.length === 0 ? (
                         <p className="empty-msg">出席データはまだありません</p>
                     ) : (
                         <div className="bar-chart">
-                            {chartSubjects.map(s => {
-                                const pct = getSubjectPercent(s.id);
+                            {chartSubjects.map((subject) => {
+                                const pct = getSubjectPercent(subject.id);
                                 const color = pct < 80 ? "var(--delete-btn)" : "var(--accent-color)";
                                 return (
-                                    <div className="bar-row" key={s.id}>
-                                        <span className="bar-label">{s.name}</span>
+                                    <div className="bar-row" key={subject.id}>
+                                        <span className="bar-label">{subject.name}</span>
                                         <div className="bar-track">
-                                            <div className="bar-fill" style={{ width: `${pct}%`, backgroundColor: color }} />
+                                            <div
+                                                className="bar-fill"
+                                                style={{ width: `${pct}%`, backgroundColor: color }}
+                                            />
                                         </div>
-                                        <span className="bar-pct" style={{ color }}>{pct}%</span>
+                                        <span className="bar-pct" style={{ color }}>
+                                            {pct}%
+                                        </span>
                                     </div>
                                 );
                             })}
@@ -256,24 +327,26 @@ export function Home() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {atRiskStudents.map(s => (
-                                    <tr key={s.id}>
-                                        <td>{s.name}</td>
-                                        <td>{s.student_number}</td>
-                                        <td><span className="risk-pct">{s.pct}%</span></td>
+                                {atRiskStudents.map((student) => (
+                                    <tr key={student.id}>
+                                        <td>{student.name}</td>
+                                        <td>{student.student_number}</td>
                                         <td>
-                                            {s.email
-                                                ? <a className="email-link" href={`mailto:${s.email}?subject=出席率警告&body=${encodeURIComponent(
-                                                        `${s.name} 様
-                                                        現在の出席率は ${s.pct}% となっており、基準である80%を下回っています。
-                                                        出席率が低い状態が続くと、成績や単位取得に影響する可能性がありますので、今後の授業には積極的に出席してください。
-                                                        ご不明な点がございましたら担当教員までご連絡ください。
-                                                        よろしくお願いいたします。`
-                                                )}`}>
+                                            <span className="risk-pct">{student.pct}%</span>
+                                        </td>
+                                        <td>
+                                            {student.email ? (
+                                                <a
+                                                    className="email-link"
+                                                    href={`mailto:${student.email}?subject=出席率警告&body=${encodeURIComponent(
+                                                        `${student.name} 様\n現在の出席率は ${student.pct}% となっており、基準である80%を下回っています。`
+                                                    )}`}
+                                                >
                                                     送信
-                                                  </a>
-                                                : <span className="no-email">メールは登録されていません。</span>
-                                            }
+                                                </a>
+                                            ) : (
+                                                <span className="no-email">メールは登録されていません。</span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -283,20 +356,22 @@ export function Home() {
                 </div>
 
                 <div className="home-card">
-                    <div className="card-header"><h2>最近の出席記録</h2></div>
+                    <div className="card-header">
+                        <h2>最近の出席記録</h2>
+                    </div>
                     {recentSessions.length === 0 ? (
                         <p className="empty-msg">出席記録はまだありません。</p>
                     ) : (
                         <div className="recent-list">
-                            {recentSessions.map((s, i) => (
-                                <div className="recent-item" key={i}>
+                            {recentSessions.map((session, index) => (
+                                <div className="recent-item" key={index}>
                                     <div className="recent-left">
-                                        <span className="recent-subject">{s.subjectName}</span>
-                                        <span className="recent-date">{s.date}</span>
+                                        <span className="recent-subject">{session.subjectName}</span>
+                                        <span className="recent-date">{session.date}</span>
                                     </div>
                                     <div className="recent-right">
-                                        <span className="pill present">{s.present} 出席</span>
-                                        <span className="pill absent">{s.absent} 欠席</span>
+                                        <span className="pill present">{session.present} 出席</span>
+                                        <span className="pill absent">{session.absent} 欠席</span>
                                     </div>
                                 </div>
                             ))}
@@ -305,52 +380,88 @@ export function Home() {
                 </div>
 
                 {isAdmin && (
-                    <div className="home-card home-card-wide">
-                        <div className="card-header">
-                            <h2>教員の操作</h2>
-                            <button className="go-btn" onClick={() => navigate("/admin/teachers")}>
-                                教員管理 →
-                            </button>
+                    <>
+                        <div className="home-card home-card-wide">
+                            <div className="card-header">
+                                <h2>教員比較（出席率が低い順）</h2>
+                                <button className="go-btn" onClick={() => navigate("/admin/teachers")}>
+                                    教員管理 →
+                                </button>
+                            </div>
+                            <TeacherComparisonTable
+                                rows={teacherComparison}
+                                onSelectTeacher={(teacherId) =>
+                                    navigate("/admin/teachers", {
+                                        state: { openAnalyticsTeacherId: teacherId },
+                                    })
+                                }
+                            />
                         </div>
-                        {classSessions.length === 0 ? (
-                            <p className="empty-msg">教員の操作記録はまだありません。</p>
-                        ) : (
-                            <table className="table-layout home-table">
-                                <thead>
-                                    <tr>
-                                        <th>教員</th>
-                                        <th>授業</th>
-                                        <th>操作</th>
-                                        <th>日時</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {classSessions.map((session) => (
-                                        <tr key={session.id}>
-                                            <td>{getTeacherLabel(session)}</td>
-                                            <td>{session.subjects?.name ?? "—"}</td>
-                                            <td>
-                                                <span className={`action-badge action-${session.status}`}>
-                                                    {CLASS_SESSION_ACTION_LABELS[session.status] ?? session.status}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span>
-                                                    {formatClassSessionTime(session.started_at)}
-                                                </span>
-                                                {session.status === "ended" && session.ended_at && (
-                                                    <span>
-                                                        {" ～ "}
-                                                        {formatClassSessionTime(session.ended_at)}
-                                                    </span>
-                                                )}
-                                            </td>
+
+                        <div className="home-card home-card-heatmap">
+                            <div className="card-header">
+                                <h2>月間出席ヒートマップ</h2>
+                                <div className="heatmap-nav">
+                                    <button type="button" className="go-btn" onClick={() => shiftHeatmapMonth(-1)}>
+                                        ←
+                                    </button>
+                                    <span>
+                                        {heatmapMonth.year}年{heatmapMonth.month}月
+                                    </span>
+                                    <button type="button" className="go-btn" onClick={() => shiftHeatmapMonth(1)}>
+                                        →
+                                    </button>
+                                </div>
+                            </div>
+                            <AttendanceHeatmap
+                                cells={heatmapCells}
+                                year={heatmapMonth.year}
+                                month={heatmapMonth.month}
+                            />
+                        </div>
+
+                        <div className="home-card home-card-wide">
+                            <div className="card-header">
+                                <h2>教員の操作</h2>
+                            </div>
+                            {classSessions.length === 0 ? (
+                                <p className="empty-msg">教員の操作記録はまだありません。</p>
+                            ) : (
+                                <table className="table-layout home-table">
+                                    <thead>
+                                        <tr>
+                                            <th>教員</th>
+                                            <th>授業</th>
+                                            <th>操作</th>
+                                            <th>日時</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
+                                    </thead>
+                                    <tbody>
+                                        {classSessions.map((session) => (
+                                            <tr key={session.id}>
+                                                <td>{getTeacherLabel(session)}</td>
+                                                <td>{session.subjects?.name ?? "—"}</td>
+                                                <td>
+                                                    <span className={`action-badge action-${session.status}`}>
+                                                        {CLASS_SESSION_ACTION_LABELS[session.status] ?? session.status}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span>{formatClassSessionTime(session.started_at)}</span>
+                                                    {session.status === "ended" && session.ended_at && (
+                                                        <span>
+                                                            {" ～ "}
+                                                            {formatClassSessionTime(session.ended_at)}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </>
                 )}
             </div>
         </div>

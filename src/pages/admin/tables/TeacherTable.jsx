@@ -1,6 +1,6 @@
 import { deleteTeacherProfile } from "@/utils/teacherFunctions.js";
 
-export function TeacherTable({ teachers, setEditTeacher, fetchTeachers }) {
+export function TeacherTable({ teachers, setEditTeacher, setAnalyticsTeacher, fetchTeachers }) {
     async function removeTeacher(id) {
         if (!confirm("この教員を削除しますか？")) return;
 
@@ -29,7 +29,15 @@ export function TeacherTable({ teachers, setEditTeacher, fetchTeachers }) {
                 ) : (
                     teachers.map((teacher) => (
                         <tr key={teacher.id}>
-                            <td>{teacher.name}</td>
+                            <td>
+                                <button
+                                    type="button"
+                                    className="link-btn"
+                                    onClick={() => setAnalyticsTeacher(teacher)}
+                                >
+                                    {teacher.name}
+                                </button>
+                            </td>
                             <td>{teacher.username ?? "—"}</td>
                             <td>
                                 {(teacher.teacher_subjects ?? [])

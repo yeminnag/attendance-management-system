@@ -1,0 +1,275 @@
+Things I'd Improve
+1. Background Location
+
+Currently
+
+GPS only records while the app is open.
+
+This is actually a browser limitation.
+
+Especially on
+
+iPhone Safari
+PWA on iPhone
+
+background location is basically impossible.
+
+For a school system this is acceptable.
+
+I would simply tell teachers
+
+Location history is collected only while the student portal is active.
+
+No need to fight browser limitations.
+
+2. Anti-cheat
+
+Currently you have
+
+at station
+at school
+
+I'd add
+
+Travel speed
+
+5km/h
+18km/h
+80km/h
+
+If
+
+Station
+↓
+
+School
+
+1 minute
+
+Obviously fake.
+
+Can detect impossible movement.
+
+3. Battery optimization
+
+Instead of
+
+Every 5 minutes
+
+I'd do
+
+Class starts
+
+↓
+
+Every 2 minutes
+
+↓
+
+Class ends
+
+↓
+
+Stop tracking
+
+Outside class
+
+No GPS.
+
+Saves battery.
+
+4. Attendance Timeline
+
+Teacher screen
+
+Instead of table only
+
+I'd show
+
+8:32
+Student at station
+
+↓
+
+8:41
+Student left station
+
+↓
+
+8:53
+Student near school
+
+↓
+
+9:01
+Attendance claimed
+
+↓
+
+9:03
+Entered classroom
+
+Very easy to understand.
+
+5. Heat Map
+
+Very cool feature.
+
+Google Maps
+
+🟢
+
+School
+
+↓
+
+All student locations
+
+Teacher can immediately see
+
+"Oh everyone is arriving."
+
+6. Device Information
+
+Store
+
+Browser
+
+OS
+
+Device
+
+
+Example
+
+iPhone 15
+
+Safari
+
+
+Useful for debugging.
+
+7. Offline Attendance Queue
+
+If internet dies
+
+Student presses
+
+出席
+
+Store locally
+
+IndexedDB
+
+↓
+
+Reconnect
+
+↓
+
+Upload
+
+Huge improvement.
+
+8. Teacher Dashboard
+
+Instead of
+
+Today's Classes
+
+Dashboard
+
+Total Students
+
+Present
+
+Late
+
+Absent
+
+Delay Claims
+
+Notifications Sent
+
+Current Active Class
+
+Looks much more professional.
+
+9. Analytics
+
+Weekly
+
+Average attendance
+
+Late arrivals
+
+Most absent class
+
+Average arrival time
+
+Most delayed railway
+
+Schools love reports.
+
+10. Admin Logs
+
+Every important action
+
+Teacher A
+
+Deleted attendance
+
+10:31
+Teacher B
+
+Edited student
+
+11:02
+
+Never trust admins.
+
+Always keep logs.
+
+Security
+
+Already good
+
+I'd additionally add
+
+✅ Row Level Security
+
+✅ Teacher-only APIs
+
+✅ Service Role only in API routes
+
+✅ Rate limit push endpoint
+
+✅ Validate every request server-side
+
+Deployment
+
+Your stack
+
+React
+
+↓
+
+Vercel
+
+↓
+
+Supabase
+
+↓
+
+Realtime
+
+↓
+
+Web Push
+
+↓
+
+PWA
+
+is actually one of the most common modern stacks for small-to-medium SaaS applications.

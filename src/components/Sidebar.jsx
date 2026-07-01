@@ -22,6 +22,15 @@ const allNavItems = [
         ),
     },
     {
+        label: "メッセージ",
+        path: "/messages",
+        icon: (
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+                <path d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm80-80h640v-480H160v525l80-65Zm0 0v-480 480Z"/>
+            </svg>
+        ),
+    },
+    {
         label: "授業管理",
         path: "/teacher/manage-category",
         icon: (

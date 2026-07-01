@@ -1,0 +1,314 @@
+.analytics-modal {
+    width: min(920px, 94vw);
+    max-height: 90vh;
+    overflow: auto;
+}
+
+.analytics-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.modal-close-btn {
+    border: 1px solid var(--hover-color);
+    background: transparent;
+    color: var(--text-secondary-color);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.teacher-analytics-card {
+    margin-bottom: 16px;
+}
+
+.teacher-analytics {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.analytics-header h3 {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.analytics-subjects,
+.analytics-meta {
+    color: var(--text-secondary-color);
+    font-size: 12px;
+}
+
+.analytics-stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.analytics-stat {
+    background: var(--base-lighter-color);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.analytics-stat-label {
+    font-size: 11px;
+    color: var(--text-secondary-color);
+}
+
+.analytics-stat-value {
+    font-size: 24px;
+    font-weight: 300;
+}
+
+.analytics-section h4 {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+.monthly-trend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.monthly-trend-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 40px;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+}
+
+.monthly-trend-label {
+    color: var(--text-secondary-color);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.monthly-trend-blocks {
+    font-family: "Ubuntu Mono", "Consolas", monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    line-height: 1;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.monthly-trend-pct {
+    text-align: right;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.trend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    min-height: 160px;
+    padding-top: 8px;
+}
+
+.trend-col {
+    flex: 1;
+    min-width: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.trend-bar-wrap {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    align-items: flex-end;
+    background: var(--base-lighter-color);
+    border-radius: 6px 6px 0 0;
+    overflow: hidden;
+}
+
+.trend-bar {
+    width: 100%;
+    min-height: 4px;
+    border-radius: 6px 6px 0 0;
+    transition: height 0.3s ease;
+}
+
+.trend-label,
+.trend-pct {
+    font-size: 11px;
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: var(--accent-color);
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+}
+
+.link-btn:hover {
+    color: var(--accent-hover-color);
+}
+
+.good-pct {
+    color: var(--accent-color);
+}
+
+.heatmap-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+}
+
+.home-card-heatmap .card-header {
+    margin-bottom: 8px;
+}
+
+.home-card-heatmap .card-header h2 {
+    font-size: 13px;
+}
+
+.heatmap-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 130px);
+    gap: 14px;
+    align-items: start;
+}
+
+.attendance-heatmap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+}
+
+.heatmap-weekdays,
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+    width: 100%;
+}
+
+.heatmap-weekdays span {
+    text-align: center;
+    font-size: 9px;
+    color: var(--text-secondary-color);
+    line-height: 1;
+}
+
+.heatmap-cell {
+    aspect-ratio: 1;
+    width: 100%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    line-height: 1;
+    background: var(--base-lighter-color);
+    color: var(--text-secondary-color);
+}
+
+.heatmap-cell.empty {
+    background: transparent;
+}
+
+.heatmap-cell.level-1 {
+    background: #4a2020;
+    color: #ffb4b4;
+}
+
+.heatmap-cell.level-2 {
+    background: #5a4020;
+    color: #ffdca8;
+}
+
+.heatmap-cell.level-3 {
+    background: #1f4a35;
+    color: #b8f0d0;
+}
+
+.heatmap-cell.level-4 {
+    background: #145038;
+    color: #d7ffe8;
+}
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    color: var(--text-secondary-color);
+}
+
+.legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--base-lighter-color);
+}
+
+.legend-swatch.level-1 { background: #4a2020; }
+.legend-swatch.level-2 { background: #5a4020; }
+.legend-swatch.level-3 { background: #1f4a35; }
+.legend-swatch.level-4 { background: #145038; }
+
+.heatmap-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--base-lighter-color);
+    border-radius: 8px;
+    height: 100%;
+}
+
+.heatmap-summary-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.heatmap-summary-label {
+    font-size: 10px;
+    color: var(--text-secondary-color);
+}
+
+.heatmap-summary-value {
+    font-size: 15px;
+    font-weight: 400;
+}
+
+.heatmap-summary-note {
+    margin-top: auto;
+    font-size: 10px;
+    color: var(--text-secondary-color);
+    line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+    .heatmap-body {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-stat-row {
+        grid-template-columns: 1fr;
+    }
+
+    .trend-chart {
+        overflow-x: auto;
+    }
+}
