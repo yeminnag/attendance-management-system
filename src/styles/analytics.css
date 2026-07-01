@@ -1,14 +1,31 @@
-.analytics-modal {
-    width: min(920px, 94vw);
-    max-height: 90vh;
-    overflow: auto;
+.modal-overlay .modal-box.analytics-modal {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .analytics-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--hover-color);
+    flex-shrink: 0;
+}
+
+.analytics-modal-title {
+    font-size: 16px;
+    font-weight: 400;
+    margin: 0;
+}
+
+.analytics-modal .teacher-analytics {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px 24px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .modal-close-btn {
@@ -300,11 +317,37 @@
 }
 
 @media (max-width: 768px) {
-    .heatmap-body {
-        grid-template-columns: 1fr;
+    .modal-overlay .modal-box.analytics-modal {
+        width: 92%;
+    }
+
+    .analytics-modal-header {
+        padding: 14px 16px;
+    }
+
+    .analytics-modal .teacher-analytics {
+        padding: 14px 16px 20px;
     }
 
     .analytics-stat-row {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-stat-value {
+        font-size: 20px;
+    }
+
+    .monthly-trend-row {
+        grid-template-columns: 28px 1fr 36px;
+        gap: 8px;
+    }
+
+    .analytics-modal .home-table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .heatmap-body {
         grid-template-columns: 1fr;
     }
 

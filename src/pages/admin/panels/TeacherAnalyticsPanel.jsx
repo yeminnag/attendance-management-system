@@ -30,7 +30,7 @@ export function TeacherAnalyticsPanel({
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-box analytics-modal" onClick={(event) => event.stopPropagation()}>
                 <div className="analytics-modal-header">
-                    <div className="title">教員分析</div>
+                    <h2 className="analytics-modal-title">教員分析</h2>
                     <button type="button" className="modal-close-btn" onClick={onClose}>
                         閉じる
                     </button>
