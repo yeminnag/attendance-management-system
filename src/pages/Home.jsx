@@ -17,6 +17,7 @@ import { getSubjectsForToday } from "@/utils/subjectFunctions.js";
 import { fetchTeachers } from "@/utils/teacherFunctions.js";
 import { ATTENDANCE_STATUS, countsAsPresent, getAttendanceRate } from "@/utils/attendanceFunctions.js";
 import { CLASS_SESSION_ACTION_LABELS, getTeacherDisplayLabel } from "@/utils/classSessionFunctions.js";
+import { sendRiskStudentNotification } from "@/utils/notificationFunctions.js";
 
 import "../styles/home.css";
 import "../styles/analytics.css";
@@ -36,6 +37,9 @@ export function Home() {
         const now = new Date();
         return { year: now.getFullYear(), month: now.getMonth() + 1 };
     });
+    const [sendingRisk, setSendingRisk] = useState({});
+    const [sentRisk, setSentRisk] = useState({});
+    const [riskError, setRiskError] = useState("");
 
     const todayDate = getTodayDateString();
     const todayLabel = formatTodayLabel();
@@ -189,6 +193,27 @@ export function Home() {
         return getTeacherDisplayLabel(session.profiles);
     }
 
+    async function handleSendRiskNotification(student) {
+        if (sendingRisk[student.id]) return;
+
+        setRiskError("");
+        setSendingRisk((current) => ({ ...current, [student.id]: true }));
+
+        const { error } = await sendRiskStudentNotification({
+            studentId: student.id,
+            attendancePct: student.pct,
+        });
+
+        setSendingRisk((current) => ({ ...current, [student.id]: false }));
+
+        if (error) {
+            setRiskError(error.message);
+            return;
+        }
+
+        setSentRisk((current) => ({ ...current, [student.id]: true }));
+    }
+
     if (loading) return <div className="home-loading">読み込み中...</div>;
 
     return (
@@ -314,6 +339,7 @@ export function Home() {
                     <div className="card-header">
                         <h2>リスクのある学生</h2>
                     </div>
+                    {riskError && <p className="risk-send-error">{riskError}</p>}
                     {atRiskStudents.length === 0 ? (
                         <p className="empty-msg">リスクのある学生はいません。</p>
                     ) : (
@@ -323,7 +349,7 @@ export function Home() {
                                     <th>学生</th>
                                     <th>番号</th>
                                     <th>出席率</th>
-                                    <th>メール</th>
+                                    <th>通知</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -335,18 +361,18 @@ export function Home() {
                                             <span className="risk-pct">{student.pct}%</span>
                                         </td>
                                         <td>
-                                            {student.email ? (
-                                                <a
-                                                    className="email-link"
-                                                    href={`mailto:${student.email}?subject=出席率警告&body=${encodeURIComponent(
-                                                        `${student.name} 様\n現在の出席率は ${student.pct}% となっており、基準である80%を下回っています。`
-                                                    )}`}
-                                                >
-                                                    送信
-                                                </a>
-                                            ) : (
-                                                <span className="no-email">メールは登録されていません。</span>
-                                            )}
+                                            <button
+                                                type="button"
+                                                className="risk-send-btn"
+                                                onClick={() => handleSendRiskNotification(student)}
+                                                disabled={sendingRisk[student.id] || sentRisk[student.id]}
+                                            >
+                                                {sendingRisk[student.id]
+                                                    ? "送信中..."
+                                                    : sentRisk[student.id]
+                                                      ? "送信済"
+                                                      : "送信"}
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}

@@ -165,15 +165,29 @@
     color: var(--delete-btn);
     font-weight: 500;
 }
-.email-link {
+.risk-send-btn {
+    border: 1px solid var(--accent-color);
+    background: transparent;
     color: var(--accent-color);
-    text-decoration: none;
+    border-radius: 6px;
+    padding: 4px 10px;
     font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
 }
-.email-link:hover { color: var(--accent-hover-color); }
-.no-email {
-    color: var(--hover-color);
-    font-size: 11px;
+.risk-send-btn:hover:not(:disabled) {
+    background: rgba(4, 134, 99, 0.12);
+    color: var(--accent-hover-color);
+    border-color: var(--accent-hover-color);
+}
+.risk-send-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+.risk-send-error {
+    color: var(--delete-btn);
+    font-size: 12px;
+    margin: 0 0 10px;
 }
 
 /* Recent Sessions */

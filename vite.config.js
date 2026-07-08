@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { runManageStudentAuth } from "./api/manage-student-auth.js";
 import { runManageTeacherAuth } from "./api/manage-teacher-auth.js";
+import { runSendRiskNotification } from "./api/send-risk-notification.js";
 
 function readRequestBody(req) {
     return new Promise((resolve, reject) => {
@@ -22,6 +23,7 @@ function readRequestBody(req) {
 const ADMIN_API_ROUTES = {
     "/api/manage-student-auth": runManageStudentAuth,
     "/api/manage-teacher-auth": runManageTeacherAuth,
+    "/api/send-risk-notification": runSendRiskNotification,
 };
 
 function adminAuthApiPlugin() {
