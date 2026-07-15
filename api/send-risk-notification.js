@@ -132,6 +132,37 @@ export async function runSendRiskNotification({ method, body, authorization, env
         return { status: 404, body: { error: "学生が見つかりません" } };
     }
 
+    if (staffProfile.role === "teacher") {
+        const { data: teacherSubjects, error: teacherSubjectsError } = await adminClient
+            .from("teacher_subjects")
+            .select("subject_id")
+            .eq("teacher_id", user.id);
+
+        if (teacherSubjectsError) {
+            return { status: 500, body: { error: teacherSubjectsError.message } };
+        }
+
+        const subjectIds = (teacherSubjects ?? []).map((row) => row.subject_id);
+        if (subjectIds.length === 0) {
+            return { status: 403, body: { error: "担当学生への通知権限がありません" } };
+        }
+
+        const { data: enrollment, error: enrollmentError } = await adminClient
+            .from("student_subjects")
+            .select("student_id")
+            .eq("student_id", studentId)
+            .in("subject_id", subjectIds)
+            .limit(1);
+
+        if (enrollmentError) {
+            return { status: 500, body: { error: enrollmentError.message } };
+        }
+
+        if (!enrollment?.length) {
+            return { status: 403, body: { error: "担当学生への通知権限がありません" } };
+        }
+    }
+
     const message = buildRiskMessage(student, Number(attendancePct));
     const senderName = staffProfile.name || "教員";
 

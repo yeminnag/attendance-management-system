@@ -30,16 +30,6 @@ export async function isUsernameTaken(username) {
     return byEmail?.role === "teacher";
 }
 
-export async function createTeacherAccount({ name, username, password }) {
-    return supabase.auth.signUp({
-        email: usernameToAuthEmail(username),
-        password,
-        options: {
-            data: { name, role: "teacher", username: normalizeUsername(username) },
-        },
-    });
-}
-
 export async function createTeacherWithAuth({ name, username, password, subjectIds = [] }) {
     const {
         data: { session },

@@ -81,7 +81,6 @@ export function StudentDetailPanel({ selectedStudent }) {
         const { error } = await updateAttendanceStatus(attendanceId, newStatus);
 
         if (error) {
-            console.error(error);
             return;
         }
 

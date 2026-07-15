@@ -15,7 +15,3 @@ export function validateUsername(username) {
 export function usernameToAuthEmail(username) {
     return `${normalizeUsername(username)}${TEACHER_EMAIL_DOMAIN}`;
 }
-
-export function isTeacherAuthEmail(email) {
-    return email?.toLowerCase().endsWith(TEACHER_EMAIL_DOMAIN);
-}

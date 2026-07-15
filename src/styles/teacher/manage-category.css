@@ -205,47 +205,6 @@
     cursor: pointer;
 }
 
-.table-layout {
-    width: 90%;
-    font-size: 13px;
-    border-spacing: 0;
-    border-collapse: collapse;
-    margin:20px;
-}
-
-.table-layout th {
-    background-color: var(--base-lighter-color);
-    color: var(--text-secondary-color);
-    padding: 8px 12px;
-    font-weight: 400;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid var(--hover-color);
-    text-align: left;
-}
-
-.table-layout td {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--hover-color);
-    color: var(--text-color);
-    text-align: left;
-}
-
-.table-layout td:first-child {
-    width: 30%;
-}
-
-.table-layout tbody tr:hover td {
-    background-color: var(--base-lighter-color);
-}
-
-.table-layout .empty-row {
-    text-align: center;
-    color: var(--text-secondary-color);
-    padding: 24px 12px;
-}
-
 .days-group {
     display: flex;
     gap: 6px;

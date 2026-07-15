@@ -1,16 +1,39 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { TakeAttendance } from "./pages/teacher/TakeAttendance.jsx";
-import { ManageStudent } from "./pages/teacher/ManageStudent.jsx";
-import { ManageCategory } from "./pages/teacher/ManageCategory.jsx";
-import { ManageTeachers } from "./pages/admin/ManageTeachers.jsx";
-import { Home } from "./pages/Home.jsx";
 import { Login } from "./pages/Login.jsx";
-import { Messages } from "./pages/Messages.jsx";
+import { Home } from "./pages/Home.jsx";
 import { Layout } from "./components/Layout.jsx";
 import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { AttendanceSessionProvider } from "./context/AttendanceSessionContext.jsx";
-import { TrainDelayProvider } from "./context/TrainDelayContext.jsx";
+
+const TakeAttendance = lazy(() =>
+    import("./pages/teacher/TakeAttendance.jsx").then((module) => ({
+        default: module.TakeAttendance,
+    }))
+);
+const ManageStudent = lazy(() =>
+    import("./pages/teacher/ManageStudent.jsx").then((module) => ({
+        default: module.ManageStudent,
+    }))
+);
+const ManageCategory = lazy(() =>
+    import("./pages/teacher/ManageCategory.jsx").then((module) => ({
+        default: module.ManageCategory,
+    }))
+);
+const ManageTeachers = lazy(() =>
+    import("./pages/admin/ManageTeachers.jsx").then((module) => ({
+        default: module.ManageTeachers,
+    }))
+);
+const Messages = lazy(() =>
+    import("./pages/Messages.jsx").then((module) => ({ default: module.Messages }))
+);
+
+function PageFallback() {
+    return <div className="auth-loading">読み込み中...</div>;
+}
 
 function App() {
     return (
@@ -23,14 +46,23 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <AttendanceSessionProvider>
-                                    <TrainDelayProvider>
-                                        <Layout>
+                                    <Layout>
+                                        <Suspense fallback={<PageFallback />}>
                                             <Routes>
                                                 <Route path="/" element={<Home />} />
                                                 <Route path="/messages" element={<Messages />} />
-                                                <Route path="/teacher/take-attendance" element={<TakeAttendance />} />
-                                                <Route path="/teacher/manage-category" element={<ManageCategory />} />
-                                                <Route path="/teacher/manage-student" element={<ManageStudent />} />
+                                                <Route
+                                                    path="/teacher/take-attendance"
+                                                    element={<TakeAttendance />}
+                                                />
+                                                <Route
+                                                    path="/teacher/manage-category"
+                                                    element={<ManageCategory />}
+                                                />
+                                                <Route
+                                                    path="/teacher/manage-student"
+                                                    element={<ManageStudent />}
+                                                />
                                                 <Route
                                                     path="/admin/teachers"
                                                     element={
@@ -39,10 +71,15 @@ function App() {
                                                         </ProtectedRoute>
                                                     }
                                                 />
-                                                <Route path="*" element={<Navigate to="/teacher/take-attendance" replace />} />
+                                                <Route
+                                                    path="*"
+                                                    element={
+                                                        <Navigate to="/teacher/take-attendance" replace />
+                                                    }
+                                                />
                                             </Routes>
-                                        </Layout>
-                                    </TrainDelayProvider>
+                                        </Suspense>
+                                    </Layout>
                                 </AttendanceSessionProvider>
                             </ProtectedRoute>
                         }

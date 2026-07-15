@@ -82,8 +82,6 @@ export function resolveAttendanceStatus({
 
     const minutesAfterStart = (new Date(checkInTime) - new Date(classStartTime)) / 60000;
 
-    console.log(minutesAfterStart)
-     // algorithm for attendance
     if (minutesAfterStart <= 1) return ATTENDANCE_STATUS.PRESENT;
     if (minutesAfterStart <= 20) return ATTENDANCE_STATUS.LATE;
     if (minutesAfterStart <= 30) {

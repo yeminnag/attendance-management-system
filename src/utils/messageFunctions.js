@@ -1,6 +1,17 @@
 import { supabase } from "../../supabase.js";
 
+const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUserId(value) {
+    return typeof value === "string" && UUID_RE.test(value);
+}
+
 export async function fetchMessagesWithPartner(userId, partnerId) {
+    if (!isValidUserId(userId) || !isValidUserId(partnerId)) {
+        return { data: [], error: new Error("Invalid conversation participant") };
+    }
+
     return supabase
         .from("messages")
         .select("id, sender_id, recipient_id, body, read_at, created_at")
@@ -92,55 +103,6 @@ export function buildConversationList(userId, messages, profilesById) {
     );
 }
 
-export async function fetchTeachersForStudentSubjects(studentId) {
-    const { data: enrollments, error: enrollmentError } = await supabase
-        .from("student_subjects")
-        .select("subject_id, subjects(name)")
-        .eq("student_id", studentId);
-
-    if (enrollmentError) return { data: [], error: enrollmentError };
-    if (!enrollments?.length) return { data: [], error: null };
-
-    const subjectIds = enrollments.map((row) => row.subject_id);
-    const subjectNameById = Object.fromEntries(
-        enrollments.map((row) => [row.subject_id, row.subjects?.name ?? ""])
-    );
-
-    const { data: assignments, error: assignmentError } = await supabase
-        .from("teacher_subjects")
-        .select("subject_id, teacher_id, profiles:teacher_id(id, name, role, username)")
-        .in("subject_id", subjectIds);
-
-    if (assignmentError) return { data: [], error: assignmentError };
-
-    const teacherMap = new Map();
-    for (const row of assignments ?? []) {
-        const profile = row.profiles;
-        if (!profile?.id) continue;
-
-        const existing = teacherMap.get(profile.id);
-        const subjectName = subjectNameById[row.subject_id] ?? "";
-        if (!existing) {
-            teacherMap.set(profile.id, {
-                ...profile,
-                subjectNames: subjectName ? [subjectName] : [],
-                subjectName,
-            });
-            continue;
-        }
-
-        if (subjectName && !existing.subjectNames.includes(subjectName)) {
-            existing.subjectNames.push(subjectName);
-            existing.subjectName = existing.subjectNames.join("、");
-        }
-    }
-
-    return {
-        data: [...teacherMap.values()].sort((a, b) => a.name.localeCompare(b.name, "ja")),
-        error: null,
-    };
-}
-
 export async function fetchStaffProfiles() {
     return supabase
         .from("profiles")
@@ -223,7 +185,12 @@ export function subscribeToMessages(userId, onChange) {
         .on(
             "postgres_changes",
             { event: "*", schema: "public", table: "messages" },
-            onChange
+            (payload) => {
+                const row = payload.new ?? payload.old;
+                if (!row) return;
+                if (row.sender_id !== userId && row.recipient_id !== userId) return;
+                onChange(payload);
+            }
         )
         .subscribe();
 

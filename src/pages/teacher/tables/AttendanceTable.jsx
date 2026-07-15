@@ -7,15 +7,9 @@ import { useAuth } from "@/context/AuthContext.jsx";
 import { formatTimeRange, getTodayDateString } from "@/utils/dateTimeFunctions.js";
 
 import {
-
-    ATTENDANCE_STATUS,
-
     buildAttendanceRecords,
-
     endClassSession,
-
     fetchStudentsForSubject,
-
     fetchTodayAttendanceStatus,
 
     getScheduledClassEnd,

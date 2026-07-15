@@ -214,3 +214,12 @@ body {
     background-color: var(--hover-color);
     color: var(--text-color);
 }
+
+.auth-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+    color: var(--text-secondary-color);
+    font-size: 14px;
+}

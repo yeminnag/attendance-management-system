@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "../../supabase.js";
 import { usernameToAuthEmail } from "@/utils/teacherAuth.js";
 
@@ -65,7 +65,8 @@ export function AuthProvider({ children }) {
             loadSession(session?.user ?? null);
         });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === "TOKEN_REFRESHED") return;
             setLoading(true);
             loadSession(session?.user ?? null);
         });
@@ -73,58 +74,81 @@ export function AuthProvider({ children }) {
         return () => subscription.unsubscribe();
     }, [loadSession]);
 
-    async function signInAsAdmin(email, password) {
+    const signInAsAdmin = useCallback(async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({
             email: email.trim().toLowerCase(),
             password,
         });
         if (error) throw error;
-    }
+    }, []);
 
-    async function signInAsTeacher(username, password) {
+    const signInAsTeacher = useCallback(async (username, password) => {
         const { error } = await supabase.auth.signInWithPassword({
             email: usernameToAuthEmail(username),
             password,
         });
         if (error) throw error;
-    }
+    }, []);
 
-    async function signOut() {
+    const signOut = useCallback(async () => {
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
-    }
+    }, []);
 
     const isAdmin = profile?.role === "admin";
-    const subjectIds = (profile?.teacher_subjects ?? []).map((ts) => String(ts.subject_id));
+    const subjectIds = useMemo(
+        () => (profile?.teacher_subjects ?? []).map((ts) => String(ts.subject_id)),
+        [profile?.teacher_subjects]
+    );
 
-    function canEditSubject(subjectId) {
-        if (isAdmin) return true;
-        return subjectIds.includes(String(subjectId));
-    }
+    const canEditSubject = useCallback(
+        (subjectId) => {
+            if (isAdmin) return true;
+            return subjectIds.includes(String(subjectId));
+        },
+        [isAdmin, subjectIds]
+    );
 
-    function canManageStudentSubjects(studentSubjectIds = []) {
-        if (isAdmin) return true;
-        return studentSubjectIds.some((id) => subjectIds.includes(String(id)));
-    }
+    const canManageStudentSubjects = useCallback(
+        (studentSubjectIds = []) => {
+            if (isAdmin) return true;
+            return studentSubjectIds.some((id) => subjectIds.includes(String(id)));
+        },
+        [isAdmin, subjectIds]
+    );
+
+    const contextValue = useMemo(
+        () => ({
+            user,
+            profile,
+            profileError,
+            loading,
+            isAdmin,
+            isTeacher: profile?.role === "teacher",
+            subjectIds,
+            signInAsAdmin,
+            signInAsTeacher,
+            signOut,
+            canEditSubject,
+            canManageStudentSubjects,
+        }),
+        [
+            user,
+            profile,
+            profileError,
+            loading,
+            isAdmin,
+            subjectIds,
+            signInAsAdmin,
+            signInAsTeacher,
+            signOut,
+            canEditSubject,
+            canManageStudentSubjects,
+        ]
+    );
 
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                profile,
-                profileError,
-                loading,
-                isAdmin,
-                isTeacher: profile?.role === "teacher",
-                subjectIds,
-                signInAsAdmin,
-                signInAsTeacher,
-                signOut,
-                canEditSubject,
-                canManageStudentSubjects,
-                refreshProfile: loadSession,
-            }}
-        >
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     );

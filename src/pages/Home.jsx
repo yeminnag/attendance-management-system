@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "../../supabase.js";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext.jsx";
@@ -18,9 +18,6 @@ import { fetchTeachers } from "@/utils/teacherFunctions.js";
 import { ATTENDANCE_STATUS, countsAsPresent, getAttendanceRate } from "@/utils/attendanceFunctions.js";
 import { CLASS_SESSION_ACTION_LABELS, getTeacherDisplayLabel } from "@/utils/classSessionFunctions.js";
 import { sendRiskStudentNotification } from "@/utils/notificationFunctions.js";
-
-import "../styles/home.css";
-import "../styles/analytics.css";
 
 export function Home() {
     const navigate = useNavigate();
@@ -87,63 +84,91 @@ export function Home() {
         fetchAll();
     }, [isAdmin]);
 
-    const todaySubjects = getSubjectsForToday(subjects);
+    const todaySubjects = useMemo(() => getSubjectsForToday(subjects), [subjects]);
 
-    function getSubjectPercent(subjectId) {
-        const records = attendance.filter(
-            (record) => record.subject_id === subjectId && record.status !== ATTENDANCE_STATUS.SKIPPED
-        );
-        const studentIds = [...new Set(records.map((record) => record.student_id))];
-        if (studentIds.length === 0) return 0;
+    const getSubjectPercent = useCallback(
+        (subjectId) => {
+            const records = attendance.filter(
+                (record) =>
+                    record.subject_id === subjectId && record.status !== ATTENDANCE_STATUS.SKIPPED
+            );
+            const studentIds = [...new Set(records.map((record) => record.student_id))];
+            if (studentIds.length === 0) return 0;
 
-        const rates = studentIds.map((studentId) =>
-            getAttendanceRate(records.filter((record) => record.student_id === studentId))
-        );
-        return Math.round(rates.reduce((sum, rate) => sum + rate, 0) / rates.length);
-    }
+            const rates = studentIds.map((studentId) =>
+                getAttendanceRate(records.filter((record) => record.student_id === studentId))
+            );
+            return Math.round(rates.reduce((sum, rate) => sum + rate, 0) / rates.length);
+        },
+        [attendance]
+    );
 
-    const todayAttendance = attendance.filter(
-        (record) => record.date === todayDate && record.status !== ATTENDANCE_STATUS.SKIPPED
+    const todayAttendance = useMemo(
+        () =>
+            attendance.filter(
+                (record) => record.date === todayDate && record.status !== ATTENDANCE_STATUS.SKIPPED
+            ),
+        [attendance, todayDate]
     );
     const todayPresent = todayAttendance.filter((record) => countsAsPresent(record.status)).length;
     const todayTotal = todayAttendance.length;
     const todayRate = todayTotal > 0 ? Math.round((todayPresent / todayTotal) * 100) : null;
 
-    const atRiskStudents = students
-        .map((student) => {
-            const records = attendance.filter(
-                (record) => record.student_id === student.id && record.status !== ATTENDANCE_STATUS.SKIPPED
-            );
-            if (records.length === 0) return null;
-            const pct = getAttendanceRate(records);
-            return pct < 80 ? { ...student, pct } : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => a.pct - b.pct);
+    const atRiskStudents = useMemo(
+        () =>
+            students
+                .map((student) => {
+                    const records = attendance.filter(
+                        (record) =>
+                            record.student_id === student.id &&
+                            record.status !== ATTENDANCE_STATUS.SKIPPED
+                    );
+                    if (records.length === 0) return null;
+                    const pct = getAttendanceRate(records);
+                    return pct < 80 ? { ...student, pct } : null;
+                })
+                .filter(Boolean)
+                .sort((a, b) => a.pct - b.pct),
+        [students, attendance]
+    );
 
-    const recentSessions = [...attendance
-        .filter((record) => record.status !== ATTENDANCE_STATUS.SKIPPED)
-        .reduce((map, record) => {
-            const key = `${record.subject_id}|${record.date}`;
-            if (!map.has(key)) map.set(key, { subject_id: record.subject_id, date: record.date, records: [] });
-            map.get(key).records.push(record);
-            return map;
-        }, new Map()).values()]
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 5)
-        .map((session) => {
-            const subject = subjects.find((item) => item.id === session.subject_id);
-            const present = session.records.filter((record) => countsAsPresent(record.status)).length;
-            const absent = session.records.filter((record) => record.status === ATTENDANCE_STATUS.ABSENT).length;
-            return { ...session, subjectName: subject?.name || "不明", present, absent };
-        });
+    const recentSessions = useMemo(
+        () =>
+            [...attendance
+                .filter((record) => record.status !== ATTENDANCE_STATUS.SKIPPED)
+                .reduce((map, record) => {
+                    const key = `${record.subject_id}|${record.date}`;
+                    if (!map.has(key))
+                        map.set(key, { subject_id: record.subject_id, date: record.date, records: [] });
+                    map.get(key).records.push(record);
+                    return map;
+                }, new Map()).values()]
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 5)
+                .map((session) => {
+                    const subject = subjects.find((item) => item.id === session.subject_id);
+                    const present = session.records.filter((record) =>
+                        countsAsPresent(record.status)
+                    ).length;
+                    const absent = session.records.filter(
+                        (record) => record.status === ATTENDANCE_STATUS.ABSENT
+                    ).length;
+                    return { ...session, subjectName: subject?.name || "不明", present, absent };
+                }),
+        [attendance, subjects]
+    );
 
-    const chartSubjects = subjects.filter((subject) => {
-        const records = attendance.filter(
-            (record) => record.subject_id === subject.id && record.status !== ATTENDANCE_STATUS.SKIPPED
-        );
-        return records.length > 0;
-    });
+    const chartSubjects = useMemo(
+        () =>
+            subjects.filter((subject) => {
+                const records = attendance.filter(
+                    (record) =>
+                        record.subject_id === subject.id && record.status !== ATTENDANCE_STATUS.SKIPPED
+                );
+                return records.length > 0;
+            }),
+        [subjects, attendance]
+    );
 
     const teacherComparison = useMemo(() => {
         if (!isAdmin) return [];

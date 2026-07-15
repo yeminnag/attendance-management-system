@@ -16,10 +16,6 @@ export function studentNumberToAuthEmail(studentNumber) {
     return `${normalizeStudentNumber(studentNumber)}${STUDENT_EMAIL_DOMAIN}`;
 }
 
-export function isStudentAuthEmail(email) {
-    return email?.toLowerCase().endsWith(STUDENT_EMAIL_DOMAIN);
-}
-
 export function formatStudentAuthError(message) {
     if (message === "Database error saving new user") {
         return "学生ログインの作成に失敗しました。Supabase SQL Editor で supabase/student-portal-setup.sql を実行してください。";
